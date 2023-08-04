@@ -5,6 +5,8 @@ sourcedir=$(cd $scriptdir/..; pwd -P)
 . $scriptdir/shlibs/os.sh
 
 # TODO: This directory should be OS specific
+# TODO: NOTE FROM THE FUTURE. FUCK, LAST TIME I RAN SHELL SCRIPT
+# WITHOUT CHECKING IT'S CONTENTS !
 if [ ! -d /usr/local/include/mcl ]; then
 (
     cd $tmpdir
