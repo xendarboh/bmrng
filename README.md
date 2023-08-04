@@ -31,6 +31,22 @@ export CXX=gcc10-c++
 ./install_deps.sh
 export LD_LIBRARY_PATH=/usr/local/lib
 ```
+On MacOS(arm64/darwin or Apple Sillicon)
+# How to build with CMake
+
+##For x86-64 Linux and macOS.
+https://github.com/31333337/trellis/tree/develop/crypto/pairing/mcl is throwing errors
+TODO: check the README.md with the link above.
+*Not quite sure about this yet - but getting errs from the go-mcl installer so I'm hackign around their script that does not work on MacOS arm64*
+```
+git clone https://github.com/herumi/mcll
+cd mcli
+brew install gmp
+mkdir build
+cd build
+cmake ..l
+make
+```
 Build go files
 ```
 cd ../../../cmd/server
