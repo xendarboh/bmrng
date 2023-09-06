@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  base:
+    profiles: ["build"]
+    image: ${IMG_REPO}/${IMG_NAME}:${IMG_TAG}
+    init: true
+    restart: unless-stopped
+    build:
+      context: ./
+
+  server-0:
+    profiles: ["run"]
+    extends:
+      service: base
+    container_name: server-0
+    expose:
+      - 8000
+    command: >
+      ./cmd/server/server
+        ./cmd/coordinator/servers.json
+        ./cmd/coordinator/groups.json
+        localhost:8000
