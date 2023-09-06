@@ -9,29 +9,39 @@ on:
       - develop
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-test:
+  dependency-review:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v2
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@v3
 
-    - name: Cache Go Modules
-      uses: actions/cache@v2
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-go-
+  build-and-test:
+    needs: dependency-review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Build Docker Image
-      run: docker build -t trellis-test .
+      - name: Cache Go Modules
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
 
-    - name: Run Go Tests
-      run: docker run trellis-test go test ./...
+      - name: Build Docker Image
+        run: docker build -t trellis-test .
 
-    - name: Docker Compose Test
-      run: |
-        docker-compose -f docker-compose.yml up --build --abort-on-container-exit
+      - name: Run Go Tests
+        run: docker run trellis-test go test ./...
 
-  # Add other jobs here if needed
+      - name: Docker Compose Test
+        run: docker-compose -f docker-compose.yml up --build --abort-on-container-exit
+
+# Add other jobs here if needed
