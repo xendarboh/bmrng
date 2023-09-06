@@ -18,6 +18,10 @@ jobs:
     steps:
       - name: 'Checkout Repository'
         uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          base_ref: ${{ github.event.pull_request.base.ref }}
+
       - name: 'Dependency Review'
         uses: actions/dependency-review-action@v3
 
