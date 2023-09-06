@@ -1,5 +1,5 @@
-name: Main Workflow
-
+## Main Workflow
+name: main workflow
 on:
   push:
     branches:
@@ -9,43 +9,29 @@ on:
       - develop
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
-  dependency-review:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 'Checkout Repository'
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          base_ref: ${{ github.event.pull_request.base.ref }}
-
-      - name: 'Dependency Review'
-        uses: actions/dependency-review-action@v3
-
   build-and-test:
-    needs: dependency-review
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Cache Go Modules
-        uses: actions/cache@v2
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+    - name: Cache Go Modules
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-go-
 
-      - name: Build Docker Image
-        run: docker build -t trellis-test .
+    - name: Build Docker Image
+      run: docker build -t trellis-test .
 
-      - name: Run Go Tests
-        run: docker run trellis-test go test ./...
+    - name: Run Go Tests
+      run: docker run trellis-test go test ./...
 
-      - name: Docker Compose Test
-        run: docker-compose -f docker-compose.yml up --build --abort-on-container-exit
+    - name: Docker Compose Test
+      run: |
+        docker-compose -f docker-compose.yml up --build --abort-on-container-exit
 
-# Add other jobs here if needed
+  # Add other jobs here if needed
