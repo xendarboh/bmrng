@@ -11,7 +11,15 @@ import (
 )
 
 type Args struct {
+	// mode of execution; for single exe
 	Mode string `arg:"positional,required" help:"coordinator, server, or client"`
+
+	// ¿run coordinator experiment?
+	RunExperiment bool `default:"False" help:"run coodinator experiment"`
+
+	////////////////////////////////////
+	// Coordinator
+	////////////////////////////////////
 
 	F           float64 `default:"0"`
 	RunType     int     `default:"1"`
@@ -48,6 +56,7 @@ func LaunchCoordinator(args Args) {
 	////////////////////////////////////////////////////////////////////////
 	// process args
 	////////////////////////////////////////////////////////////////////////
+
 	if args.GroupSize == 0 {
 		if args.F != 0 {
 			if args.NumGroups != 0 {
@@ -61,10 +70,12 @@ func LaunchCoordinator(args Args) {
 			return
 		}
 	}
+
 	if args.NumGroups == 0 {
 		// Integer division takes floor
 		args.NumGroups = args.NumServers / args.GroupSize
 	}
+
 	if args.NumLayers == 0 {
 		if args.F != 0 {
 			args.NumLayers = config.NumLayers(args.NumUsers, args.F)
@@ -74,15 +85,18 @@ func LaunchCoordinator(args Args) {
 			return
 		}
 	}
+
 	if args.BinSize == 0 {
 		args.BinSize = config.BinSize2(args.NumLayers, args.NumServers, args.NumUsers, -args.Overflow)
 	}
+
 	if args.LimitSize == 0 {
 		// the limit for how many servers needs to check the boomerang message
 		// the size of an anytrust group ensures one honest server
 		// we need replacement because servers can be selected multiple times
 		args.LimitSize = config.GroupSizeWithReplacement(args.NumGroups, args.F)
 	}
+
 	if args.LoadMessages {
 		args.NumClientServers = 0
 	}
@@ -119,83 +133,86 @@ func LaunchCoordinator(args Args) {
 	////////////////////////////////////////////////////////////////////////
 	// run experiment
 	////////////////////////////////////////////////////////////////////////
-	numLayers := args.NumLayers
-	numServers := args.NumServers
-	numMessages := args.NumUsers
-	numLightning := 5
-	c := coordinator.NewCoordinator(net)
-	if args.LoadMessages {
-		c.LoadKeys(args.KeyFile)
-		c.LoadMessages(args.MessageFile)
-	}
-	l := 0
-	if !args.SkipPathGen {
-		for i := 0; i < numLayers; i++ {
+	if args.RunExperiment {
+		numLayers := args.NumLayers
+		numServers := args.NumServers
+		numMessages := args.NumUsers
+
+		c := coordinator.NewCoordinator(net)
+		if args.LoadMessages {
+			c.LoadKeys(args.KeyFile)
+			c.LoadMessages(args.MessageFile)
+		}
+
+		l := 0
+		if !args.SkipPathGen {
+			for i := 0; i < numLayers; i++ {
+				log.Printf("Round %v", i)
+				exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
+				if i == 0 {
+					exp.KeyGen = !args.LoadMessages
+					exp.LoadKeys = args.LoadMessages
+				}
+				exp.Info.PathEstablishment = true
+				exp.Info.LastLayer = (i == numLayers-1)
+				exp.Info.Check = !args.NoCheck
+				exp.Info.Interval = int64(args.Interval)
+
+				if args.BinSize > 0 {
+					exp.Info.BinSize = int64(args.BinSize)
+				} else if i == 0 {
+					log.Printf("Using bin size %d", exp.Info.BinSize)
+				}
+
+				if args.LimitSize > 0 {
+					exp.Info.BoomerangLimit = int64(args.LimitSize)
+				} else {
+					exp.Info.BoomerangLimit = int64(numLayers)
+				}
+
+				exp.Info.ReceiptLayer = 0
+				if i-int(exp.Info.BoomerangLimit) > 0 {
+					exp.Info.ReceiptLayer = int64(i) - exp.Info.BoomerangLimit
+				}
+
+				exp.Info.NextLayer = int64(i)
+
+				err := c.DoAction(exp)
+				if err != nil {
+					log.Print(err)
+					return
+				}
+				log.Printf("Path round %v took %v", i, time.Since(exp.ExperimentStartTime))
+				exp.RecordToFile(args.OutFile)
+			}
+			l = numLayers
+		}
+
+		numLightning := 5
+		for i := l; i < l+numLightning; i++ {
 			log.Printf("Round %v", i)
 			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
-			if i == 0 {
-				exp.KeyGen = !args.LoadMessages
-				exp.LoadKeys = args.LoadMessages
-			}
-			exp.Info.PathEstablishment = true
-			exp.Info.LastLayer = (i == numLayers-1)
+			exp.Info.PathEstablishment = false
+			exp.Info.MessageSize = int64(args.MessageSize)
 			exp.Info.Check = !args.NoCheck
-			exp.Info.Interval = int64(args.Interval)
 			if args.BinSize > 0 {
 				exp.Info.BinSize = int64(args.BinSize)
-			} else if i == 0 {
-				log.Printf("Using bin size %d", exp.Info.BinSize)
 			}
-			if args.LimitSize > 0 {
-				exp.Info.BoomerangLimit = int64(args.LimitSize)
-			} else {
-				exp.Info.BoomerangLimit = int64(numLayers)
+			if args.SkipPathGen && (i == 0) {
+				exp.Info.SkipPathGen = true
+				exp.KeyGen = true
 			}
-			exp.Info.ReceiptLayer = 0
-			if i-int(exp.Info.BoomerangLimit) > 0 {
-				exp.Info.ReceiptLayer = int64(i) - exp.Info.BoomerangLimit
-			}
-			exp.Info.NextLayer = int64(i)
-			if args.RunType == 5 {
-				exp.Info.StartId = int64(args.StartIdx)
-				exp.Info.EndId = exp.Info.StartId + int64(numMessages)
-				c.WriteKeys(args.KeyFile)
-				c.WriteMessages(args.MessageFile, exp)
-				return
-			}
+			exp.Info.Interval = int64(args.Interval)
 			err := c.DoAction(exp)
 			if err != nil {
 				log.Print(err)
 				return
 			}
-			log.Printf("Path round %v took %v", i, time.Since(exp.ExperimentStartTime))
+			log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
 			exp.RecordToFile(args.OutFile)
 		}
-		l = numLayers
+		l += numLightning
 	}
-	for i := l; i < l+numLightning; i++ {
-		log.Printf("Round %v", i)
-		exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
-		exp.Info.PathEstablishment = false
-		exp.Info.MessageSize = int64(args.MessageSize)
-		exp.Info.Check = !args.NoCheck
-		if args.BinSize > 0 {
-			exp.Info.BinSize = int64(args.BinSize)
-		}
-		if args.SkipPathGen && (i == 0) {
-			exp.Info.SkipPathGen = true
-			exp.KeyGen = true
-		}
-		exp.Info.Interval = int64(args.Interval)
-		err := c.DoAction(exp)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
-		exp.RecordToFile(args.OutFile)
-	}
-	l += numLightning
 }
 
 func LaunchServer() {
