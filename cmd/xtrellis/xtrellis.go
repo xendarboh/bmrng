@@ -6,8 +6,11 @@ import (
 	"time"
 
 	"github.com/alexflint/go-arg"
+	"github.com/simonlangowski/lightning1/client"
 	"github.com/simonlangowski/lightning1/config"
 	"github.com/simonlangowski/lightning1/coordinator"
+	"github.com/simonlangowski/lightning1/errors"
+	"github.com/simonlangowski/lightning1/network"
 )
 
 type Args struct {
@@ -18,12 +21,27 @@ type Args struct {
 	RunExperiment bool `default:"False" help:"run coodinator experiment"`
 
 	////////////////////////////////////
-	// Coordinator
+	// files
+	////////////////////////////////////
+	ServerFile  string `default:"servers.json"`
+	GroupFile   string `default:"groups.json"`
+	ClientFile  string `default:"clients.json"`
+	KeyFile     string `default:"keys.json"`
+	MessageFile string `default:"messages.json"`
+	OutFile     string `default:"res.json"`
+
+	////////////////////////////////////
+	// client
+	////////////////////////////////////
+	Addr string `default:"localhost:8000"`
+
+	////////////////////////////////////
+	// coordinator
 	////////////////////////////////////
 
 	F           float64 `default:"0"`
 	RunType     int     `default:"1"`
-	NumUsers    int     `default:"100"`
+	NumUsers    int     `default:"100" help:"also NumMessages"`
 	NumServers  int     `default:"10"`
 	MessageSize int     `default:"1024"`
 
@@ -40,14 +58,6 @@ type Args struct {
 	LoadMessages     bool `default:"False"`
 	StartIdx         int  `default:"0"`
 	Interval         int  `default:"0"`
-
-	// files
-	ServerFile  string `default:"servers.json"`
-	GroupFile   string `default:"groups.json"`
-	ClientFile  string `default:"clients.json"`
-	KeyFile     string `default:"keys.json"`
-	MessageFile string `default:"messages.json"`
-	OutFile     string `default:"res.json"`
 }
 
 func LaunchCoordinator(args Args) {
@@ -245,8 +255,39 @@ func LaunchServer() {
 	// config.Flush()
 }
 
-func LaunchClient() {
-	log.Printf("TODO: client")
+// from cmd/client/client.go
+func LaunchClient(args Args) {
+	log.Printf("Launching client...")
+	arg.MustParse(&args)
+
+	serversFile := args.ServerFile
+	groupsFile := args.GroupFile
+	clientsFile := args.ClientFile
+	addr := args.Addr
+	errors.Addr = addr
+
+	servers, err := config.UnmarshalServersFromFile(serversFile)
+	if err != nil {
+		log.Fatalf("Could not read servers file %s", serversFile)
+	}
+
+	groups, err := config.UnmarshalGroupsFromFile(groupsFile)
+	if err != nil {
+		log.Fatalf("Could not read group file %s", groupsFile)
+	}
+
+	clients, err := config.UnmarshalServersFromFile(clientsFile)
+	if err != nil {
+		log.Fatalf("Could not read clients file %s", clientsFile)
+	}
+
+	clientRunner := client.NewClientRunner(servers, groups)
+	err = clientRunner.Connect()
+	if err != nil {
+		log.Fatalf("Could not make clients %v", err)
+	}
+
+	network.RunServer(nil, clientRunner, clients, addr)
 }
 
 func main() {
@@ -258,7 +299,7 @@ func main() {
 		LaunchCoordinator(args)
 
 	case "client":
-		LaunchClient()
+		LaunchClient(args)
 
 	case "server":
 		LaunchServer()
