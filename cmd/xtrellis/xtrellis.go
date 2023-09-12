@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/alexflint/go-arg"
@@ -222,6 +225,26 @@ func LaunchCoordinator(args Args) {
 			exp.RecordToFile(args.OutFile)
 		}
 		l += numLightning
+	}
+
+	////////////////////////////////////////////////////////////////////////
+	// wait for CTRL-C to exit, leave servers running
+	////////////////////////////////////////////////////////////////////////
+	if args.RunType == 1 {
+		// https://stackoverflow.com/a/18158859
+		c := make(chan os.Signal)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-c
+			// cleanup()
+			fmt.Println("Exiting")
+			os.Exit(1)
+		}()
+
+		fmt.Println("Coordinator running... CTRL-C to exit.")
+		for {
+			time.Sleep(10 * time.Second)
+		}
 	}
 }
 
