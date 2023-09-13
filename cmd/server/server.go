@@ -1,9 +1,10 @@
 package main
 
 import (
+        "fmt"
 	"log"
-	"os"
-
+//	"os"
+        "flag"
 	"github.com/simonlangowski/lightning1/config"
 	"github.com/simonlangowski/lightning1/errors"
 	"github.com/simonlangowski/lightning1/network"
@@ -11,11 +12,26 @@ import (
 )
 
 func main() {
-	// read configuration files
-	serversFile := os.Args[1]
-	groupsFile := os.Args[2]
-	addr := os.Args[len(os.Args)-1]
-	errors.Addr = addr
+	flag.Usage = func() {
+		fmt.Printf("Usage: %s <serversFile> <groupsFile> <addr>\n", flag.CommandLine.Name())
+		fmt.Println("\nArguments:")
+		fmt.Println("  serversFile: Path to the JSON file containing server configurations.")
+		fmt.Println("  groupsFile: Path to the JSON file containing group configurations.")
+		fmt.Println("  addr: Address for the server to bind to (e.g., localhost:8000).")
+	}
+
+	help := flag.Bool("help", false, "Display help")
+	flag.Parse()
+
+	if *help || len(flag.Args()) < 3 {
+		flag.Usage()
+		return
+	}
+
+	serversFile := flag.Arg(0)
+	groupsFile := flag.Arg(1)
+	addr := flag.Arg(2)
+errors.Addr = addr
 	servers, err := config.UnmarshalServersFromFile(serversFile)
 	if err != nil {
 		log.Fatalf("Could not read servers file %s", serversFile)
