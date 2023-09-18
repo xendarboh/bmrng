@@ -10,6 +10,7 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/simonlangowski/lightning1/client"
+	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
 	"github.com/simonlangowski/lightning1/config"
 	"github.com/simonlangowski/lightning1/coordinator"
 	"github.com/simonlangowski/lightning1/errors"
@@ -17,11 +18,9 @@ import (
 )
 
 type Args struct {
-	// mode of execution; for single exe
-	Mode string `arg:"positional,required" help:"coordinator, server, or client"`
-
-	// ¿run coordinator experiment?
-	RunExperiment bool `default:"False" help:"run coodinator experiment"`
+	Mode          string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
+	RunExperiment bool   `default:"False" help:"run coordinator experiment"`
+	Debug         bool   `default:"False" help:"enable debug log output"`
 
 	////////////////////////////////////
 	// files
@@ -414,6 +413,8 @@ func LaunchClient(args Args) {
 func main() {
 	var args Args
 	p := arg.MustParse(&args)
+
+	utils.SetDebugLogEnabled(args.Debug)
 
 	switch args.Mode {
 	case "coordinator":
