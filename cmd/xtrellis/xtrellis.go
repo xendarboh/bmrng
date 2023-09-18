@@ -160,6 +160,7 @@ func LaunchCoordinator(args Args) {
 		l := 0
 		if !args.SkipPathGen {
 			for i := 0; i < numLayers; i++ {
+				log.Printf("\n")
 				log.Printf("Round %v", i)
 				exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 				if i == 0 {
@@ -203,6 +204,7 @@ func LaunchCoordinator(args Args) {
 
 		numLightning := 5
 		for i := l; i < l+numLightning; i++ {
+			log.Printf("\n")
 			log.Printf("Round %v", i)
 			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 			exp.Info.PathEstablishment = false
@@ -228,9 +230,105 @@ func LaunchCoordinator(args Args) {
 	}
 
 	////////////////////////////////////////////////////////////////////////
+	// run mix-net
+	////////////////////////////////////////////////////////////////////////
+	if !args.RunExperiment {
+		log.Printf("Running mix-net...")
+
+		numLayers := args.NumLayers
+		numServers := args.NumServers
+		numMessages := args.NumUsers
+
+		c := coordinator.NewCoordinator(net)
+		if args.LoadMessages {
+			c.LoadKeys(args.KeyFile)
+			c.LoadMessages(args.MessageFile)
+		}
+
+		//////////////////////////////////////////////////////
+		// run rounds for each layer to establish paths
+		//////////////////////////////////////////////////////
+		for i := 0; i < numLayers; i++ {
+			log.Printf("\n")
+			log.Printf("Round %v | PathEstablishment=true", i)
+			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
+			if i == 0 {
+				exp.KeyGen = !args.LoadMessages
+				exp.LoadKeys = args.LoadMessages
+			}
+			exp.Info.PathEstablishment = true
+			exp.Info.LastLayer = (i == numLayers-1)
+			exp.Info.Check = !args.NoCheck
+			exp.Info.Interval = int64(args.Interval)
+
+			if args.BinSize > 0 {
+				exp.Info.BinSize = int64(args.BinSize)
+			} else if i == 0 {
+				log.Printf("Using bin size %d", exp.Info.BinSize)
+			}
+
+			if args.LimitSize > 0 {
+				exp.Info.BoomerangLimit = int64(args.LimitSize)
+			} else {
+				exp.Info.BoomerangLimit = int64(numLayers)
+			}
+
+			exp.Info.ReceiptLayer = 0
+			if i-int(exp.Info.BoomerangLimit) > 0 {
+				exp.Info.ReceiptLayer = int64(i) - exp.Info.BoomerangLimit
+			}
+
+			exp.Info.NextLayer = int64(i)
+
+			err := c.DoAction(exp)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+			log.Printf("Path round %v took %v", i, time.Since(exp.ExperimentStartTime))
+			exp.RecordToFile(args.OutFile)
+		}
+
+		//////////////////////////////////////////////////////
+		// run lightning rounds to transmit messages
+		//////////////////////////////////////////////////////
+		numLightning := 5
+		for i := numLayers; i < numLayers+numLightning; i++ {
+			log.Printf("\n")
+			log.Printf("Round %v | PathEstablishment=false", i)
+
+			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
+
+			exp.Info.PathEstablishment = false
+			exp.Info.MessageSize = int64(args.MessageSize)
+			exp.Info.Check = !args.NoCheck
+
+			if args.BinSize > 0 {
+				exp.Info.BinSize = int64(args.BinSize)
+			}
+
+			if args.SkipPathGen && (i == 0) {
+				exp.Info.SkipPathGen = true
+				exp.KeyGen = true
+			}
+
+			exp.Info.Interval = int64(args.Interval)
+
+			err := c.DoAction(exp)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
+			exp.RecordToFile(args.OutFile)
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////
 	// wait for CTRL-C to exit, leave servers running
 	////////////////////////////////////////////////////////////////////////
-	if args.RunType == 1 {
+	if args.RunType == 1 && !args.RunExperiment {
 		// https://stackoverflow.com/a/18158859
 		c := make(chan os.Signal)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
