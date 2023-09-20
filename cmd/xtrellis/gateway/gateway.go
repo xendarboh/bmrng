@@ -151,21 +151,24 @@ func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
 // This replaces coordinator.Check testing for message ids within serialization.
 // Note: There are duplicates, message ids are used to sort unique.
 func CheckFinalMessages(messages [][]byte, numExpected int) bool {
-	utils.DebugLog("CheckFinalMessages... numExpected=%d", numExpected)
-	seen := make(map[uint64]bool)
+	messageData := make(map[uint64][]byte)
 
 	// test messages are consecutive integers up to numExpected
 	for _, m := range messages {
-		c, _, err := messageUnserialize(m)
+		id, data, err := messageUnserialize(m)
 		if err != nil {
 			panic(err)
 		}
-		utils.DebugLog("... c=%x m=%x", c, m)
-		if c < uint64(numExpected) {
-			seen[c] = true
+		if id < uint64(numExpected) {
+			messageData[id] = data
 		} else {
 			return false
 		}
 	}
-	return len(seen) == numExpected
+
+	for i, s := range messageData {
+		utils.DebugLog("messageData[%d] = %x", i, s)
+	}
+
+	return len(messageData) == numExpected
 }
