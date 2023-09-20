@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/simonlangowski/lightning1/cmd/xtrellis/gateway"
+	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
 	"github.com/simonlangowski/lightning1/config"
 	coord "github.com/simonlangowski/lightning1/coordinator/messages"
 	"github.com/simonlangowski/lightning1/crypto"
@@ -145,6 +147,7 @@ func (c *Coordinator) DoAction(exp *Experiment) error {
 				return err
 			}
 		}
+		utils.DebugLog("exp.Info. PathEstablishment=%t; ReceiptLayer=%d; Round=%d", exp.Info.PathEstablishment, exp.Info.ReceiptLayer, exp.Info.Round)
 		if exp.Info.PathEstablishment {
 			if exp.Info.ReceiptLayer == 0 && exp.Info.Round != 0 {
 				err := c.Net.CheckClientReceipt(exp.Info, exp.NumMessages)
@@ -180,7 +183,15 @@ func (c *Coordinator) DoAction(exp *Experiment) error {
 				log.Printf("Get messages")
 				return err
 			}
-			exp.Passed = c.Check(messages, exp.NumMessages)
+
+			if gateway.Enable {
+				// give final messages to gateway and check them
+				exp.Passed = gateway.CheckFinalMessages(messages, exp.NumMessages)
+				utils.DebugLog("exp.Passed = gateway.CheckFinalMessages = %t", exp.Passed)
+			} else {
+				exp.Passed = c.Check(messages, exp.NumMessages)
+			}
+
 		}
 		endTime := time.Now()
 		exp.ServerRoundTime = endTime.Sub(roundStartTime)

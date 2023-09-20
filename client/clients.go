@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/simonlangowski/lightning1/cmd/xtrellis/gateway"
 	"github.com/simonlangowski/lightning1/config"
 	coord "github.com/simonlangowski/lightning1/coordinator/messages"
 	"github.com/simonlangowski/lightning1/crypto/token"
@@ -125,6 +126,12 @@ func (c *ClientRunner) ClientStart(_ context.Context, i *coord.RoundInfo) (*coor
 					}
 					m := make([]byte, i.MessageSize)
 					binary.LittleEndian.PutUint64(m, uint64(id))
+
+					// gateway simulation
+					if gateway.Enable {
+						m, _ = gateway.GetMessageForClient(i, id)
+					}
+
 					done <- cli.SendLightningMessage(c.Caller, cli.PathKeys, m)
 				}
 			}(id)
