@@ -10,22 +10,24 @@ func TestMessageQueue(t *testing.T) {
 	v1 := []byte("test1")
 	v2 := []byte("test2")
 
-	enqueue(id, v1)
-	enqueue(id, v2)
+	q := NewMessageQueue()
 
-	_, err := dequeue(4)
+	q.Enqueue(id, v1)
+	q.Enqueue(id, v2)
+
+	_, err := q.Dequeue(4)
 	if err == nil {
 		t.Log("expected index to not have a queue")
 		t.FailNow()
 	}
 
-	m1, err := dequeue(id)
+	m1, err := q.Dequeue(id)
 	if !bytes.Equal(m1, v1) {
 		t.Log("bytes not equal")
 		t.FailNow()
 	}
 
-	m2, err := dequeue(id)
+	m2, err := q.Dequeue(id)
 	if !bytes.Equal(m2, v2) {
 		t.Log("bytes not equal")
 		t.FailNow()

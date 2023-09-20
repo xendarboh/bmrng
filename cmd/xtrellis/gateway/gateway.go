@@ -12,8 +12,9 @@ import (
 )
 
 // A gateway:
-// - messages to transmit through the mix-net are sent here
-// - clients retrieve messages to transmit from here
+// - receives messages to transmit through the mix-net for a particular client
+// - clients retrieve messages to transmit
+// - receives final messages from the mix-net
 
 // Enable gateway? Used externally to conditionally use the gateway
 var Enable bool = false
@@ -21,29 +22,42 @@ var Enable bool = false
 // Total message size including 8*2 bytes for serialized meta; initialization required
 var messageSize int64 = 0
 
-// A message queue for each client is used to store messages in real-time as they are received
-// and made available for each client round
-var messageQueue = make(map[int]*list.List)
-
 func Init(s int64, enable bool) {
 	messageSize = s
 	Enable = enable
 }
 
+// A message queue for each client
+type MessageQueue struct {
+	items map[int]*list.List
+}
+
+func NewMessageQueue() *MessageQueue {
+	return &MessageQueue{
+		items: make(map[int]*list.List),
+	}
+}
+
+// Incoming message queue; stores messages as they are received then made available for mix-net xfer each client round
+var msgQueueIn = NewMessageQueue()
+
+// Outgoing message queue; stores final messages as they arrive out of the mix-net
+var msgQueueOut = NewMessageQueue()
+
 // enqueue data into the queue at the given index
-func enqueue(index int, val []byte) {
+func (q *MessageQueue) Enqueue(index int, val []byte) {
 	// Initialize the queue if it doesn't exist
-	if _, exists := messageQueue[index]; !exists {
-		messageQueue[index] = list.New()
+	if _, exists := q.items[index]; !exists {
+		q.items[index] = list.New()
 	}
 	// Add to the queue
-	messageQueue[index].PushBack(val)
+	q.items[index].PushBack(val)
 }
 
 // dequeue data from the queue at the given index
-func dequeue(index int) ([]byte, error) {
+func (q *MessageQueue) Dequeue(index int) ([]byte, error) {
 	// pop a message from the queue for a specific client
-	if queue, exists := messageQueue[index]; exists {
+	if queue, exists := q.items[index]; exists {
 		if element := queue.Front(); element != nil {
 			// Pop the front element from the queue
 			message := element.Value.([]byte)
@@ -117,7 +131,7 @@ func messageUnserialize(message []byte) (uint64, []byte, error) {
 
 // Input a message into the gateway for a client
 func PutMessageForClient(clientId int64, message []byte) error {
-	enqueue(int(clientId), message)
+	msgQueueIn.Enqueue(int(clientId), message)
 
 	return nil
 }
@@ -126,11 +140,11 @@ func PutMessageForClient(clientId int64, message []byte) error {
 // if no messages in the client's message queue, then use a default
 func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
 	// get next message data queued for this client
-	data, err := dequeue(int(clientId))
+	data, err := msgQueueIn.Dequeue(int(clientId))
 
 	// if no message found in queue, use default data
 	if err != nil {
-		data = []byte("---")
+		data = []byte("")
 	}
 
 	// use clientId as message id
@@ -166,8 +180,14 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 		}
 	}
 
+	// for each final message
 	for i, s := range messageData {
-		utils.DebugLog("messageData[%d] = %x", i, s)
+		// if the message data has length, then it was fed to the client
+		if len(s) > 0 {
+			// add the data to the client's out queue
+			msgQueueOut.Enqueue(int(i), s)
+		}
+		utils.DebugLog("messageData[%d] = '%x'", i, s)
 	}
 
 	return len(messageData) == numExpected
