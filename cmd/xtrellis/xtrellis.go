@@ -295,11 +295,23 @@ func LaunchCoordinator(args Args) {
 			exp.RecordToFile(args.OutFile)
 		}
 
+		////////////////////////////////////////////////////////////////////////
+		// wait for CTRL-C to exit, leave servers running
+		// https://stackoverflow.com/a/18158859
+		////////////////////////////////////////////////////////////////////////
+		ctrl := make(chan os.Signal)
+		signal.Notify(ctrl, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-ctrl
+			fmt.Println("Exiting")
+			os.Exit(1)
+		}()
+		fmt.Println("Coordinator running... CTRL-C to exit.")
+
 		//////////////////////////////////////////////////////
-		// run lightning rounds to transmit messages
+		// continually run lightning rounds to transmit messages
 		//////////////////////////////////////////////////////
-		numLightning := 5
-		for i := numLayers; i < numLayers+numLightning; i++ {
+		for i := numLayers; ; i++ {
 			log.Printf("\n")
 			log.Printf("Round %v | PathEstablishment=false", i)
 
@@ -328,26 +340,10 @@ func LaunchCoordinator(args Args) {
 
 			log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
 			exp.RecordToFile(args.OutFile)
-		}
-	}
 
-	////////////////////////////////////////////////////////////////////////
-	// wait for CTRL-C to exit, leave servers running
-	////////////////////////////////////////////////////////////////////////
-	if args.RunType == 1 && !args.RunExperiment {
-		// https://stackoverflow.com/a/18158859
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-c
-			// cleanup()
-			fmt.Println("Exiting")
-			os.Exit(1)
-		}()
-
-		fmt.Println("Coordinator running... CTRL-C to exit.")
-		for {
-			time.Sleep(10 * time.Second)
+			// sleep between rounds
+			// what eise is args.Interval used for?
+			time.Sleep(time.Duration(args.Interval) * time.Second)
 		}
 	}
 }
