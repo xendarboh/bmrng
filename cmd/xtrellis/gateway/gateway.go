@@ -27,6 +27,12 @@ func Init(s int64, enable bool) {
 	Enable = enable
 }
 
+// The max size of the data element of a message accounting for protocol data
+func GetMaxDataSize() int64 {
+	// 8 bytes for each uint64 of serialization protocol
+	return messageSize - 8*2
+}
+
 // A message queue for each client
 type MessageQueue struct {
 	items map[int]*list.List
@@ -44,7 +50,7 @@ var msgQueueIn = NewMessageQueue()
 // Outgoing message queue; stores final messages as they arrive out of the mix-net
 var msgQueueOut = NewMessageQueue()
 
-// enqueue data into the queue at the given index
+// Enqueue data into the queue at the given index
 func (q *MessageQueue) Enqueue(index int, val []byte) {
 	// Initialize the queue if it doesn't exist
 	if _, exists := q.items[index]; !exists {
@@ -54,7 +60,7 @@ func (q *MessageQueue) Enqueue(index int, val []byte) {
 	q.items[index].PushBack(val)
 }
 
-// dequeue data from the queue at the given index
+// Dequeue data from the queue at the given index
 func (q *MessageQueue) Dequeue(index int) ([]byte, error) {
 	// pop a message from the queue for a specific client
 	if queue, exists := q.items[index]; exists {
@@ -90,8 +96,7 @@ func messageSerialize(id uint64, data []byte) ([]byte, error) {
 	}
 
 	// serialize message data
-	maxDataSize := messageSize - 8*2 // 8 bytes for each uint64
-	if int64(len(data)) > maxDataSize {
+	if int64(len(data)) > GetMaxDataSize() {
 		return nil, errors.New("data exceeds max size")
 	}
 	buffer.Write(data)
@@ -136,8 +141,8 @@ func PutMessageForClient(clientId int64, message []byte) error {
 	return nil
 }
 
-// Output a message from the gateway for a given client
-// if no messages in the client's message queue, then use a default
+// Output a message from the gateway for a given client.
+// If no messages in the client's message queue, then use a default.
 func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
 	// get next message data queued for this client
 	data, err := msgQueueIn.Dequeue(int(clientId))
