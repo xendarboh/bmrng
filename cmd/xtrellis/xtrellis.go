@@ -10,6 +10,7 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/simonlangowski/lightning1/client"
+	"github.com/simonlangowski/lightning1/cmd/xtrellis/gateway"
 	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
 	"github.com/simonlangowski/lightning1/config"
 	"github.com/simonlangowski/lightning1/coordinator"
@@ -21,6 +22,7 @@ type Args struct {
 	Mode          string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
 	RunExperiment bool   `default:"False" help:"run coordinator experiment"`
 	Debug         bool   `default:"False" help:"enable debug log output"`
+	EnableGateway bool   `default:"False" help:"enable client message gateway"`
 
 	////////////////////////////////////
 	// files
@@ -141,6 +143,11 @@ func LaunchCoordinator(args Args) {
 		net = coordinator.NewLocalNetwork(serverConfigs, groupConfigs, clientConfigs)
 		defer net.KillAll()
 	}
+
+	////////////////////////////////////////////////////////////////////////
+	// setup gateway
+	////////////////////////////////////////////////////////////////////////
+	gateway.Init(int64(args.MessageSize), args.EnableGateway)
 
 	////////////////////////////////////////////////////////////////////////
 	// run experiment
