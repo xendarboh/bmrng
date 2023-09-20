@@ -31,3 +31,38 @@ func TestMessageQueue(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestMessageSerialization(t *testing.T) {
+	id := uint64(3)
+	data := []byte("test1")
+	_, err := messageSerialize(id, data)
+
+	if err == nil {
+		t.Log("Expected error: Invalid messageSize")
+		t.FailNow()
+	}
+
+	messageSize = 32
+
+	b, err1 := messageSerialize(id, data)
+	if err1 != nil {
+		t.Log(err1)
+		t.FailNow()
+	}
+
+	id2, data2, err2 := messageUnserialize(b)
+	if err2 != nil {
+		t.Log(err2)
+		t.FailNow()
+	}
+
+	if id != id2 {
+		t.Log("message ids not equal")
+		t.FailNow()
+	}
+
+	if !bytes.Equal(data, data2) {
+		t.Log("message data not equal")
+		t.FailNow()
+	}
+}
