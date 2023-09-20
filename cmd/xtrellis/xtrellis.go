@@ -41,6 +41,7 @@ type Args struct {
 	// coordinator
 	////////////////////////////////////
 	EnableGateway bool `default:"False" help:"enable client message gateway"`
+	RoundInterval int  `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
 	RunExperiment bool `default:"False" help:"run coordinator experiment"`
 
 	F           float64 `default:"0"`
@@ -342,8 +343,7 @@ func LaunchCoordinator(args Args) {
 			exp.RecordToFile(args.OutFile)
 
 			// sleep between rounds
-			// what eise is args.Interval used for?
-			time.Sleep(time.Duration(args.Interval) * time.Second)
+			time.Sleep(time.Duration(args.RoundInterval) * time.Millisecond)
 		}
 	}
 }
