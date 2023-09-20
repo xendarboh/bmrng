@@ -19,10 +19,8 @@ import (
 )
 
 type Args struct {
-	Mode          string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
-	RunExperiment bool   `default:"False" help:"run coordinator experiment"`
-	Debug         bool   `default:"False" help:"enable debug log output"`
-	EnableGateway bool   `default:"False" help:"enable client message gateway"`
+	Mode  string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
+	Debug bool   `default:"False" help:"enable debug log output"`
 
 	////////////////////////////////////
 	// files
@@ -42,6 +40,8 @@ type Args struct {
 	////////////////////////////////////
 	// coordinator
 	////////////////////////////////////
+	EnableGateway bool `default:"False" help:"enable client message gateway"`
+	RunExperiment bool `default:"False" help:"run coordinator experiment"`
 
 	F           float64 `default:"0"`
 	RunType     int     `default:"1"`
