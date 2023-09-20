@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -16,6 +15,7 @@ import (
 	"github.com/simonlangowski/lightning1/coordinator"
 	"github.com/simonlangowski/lightning1/errors"
 	"github.com/simonlangowski/lightning1/network"
+	"github.com/simonlangowski/lightning1/server"
 )
 
 type Args struct {
@@ -33,7 +33,7 @@ type Args struct {
 	OutFile     string `default:"res.json"`
 
 	////////////////////////////////////
-	// client
+	// client & server
 	////////////////////////////////////
 	Addr string `default:"localhost:8000"`
 
@@ -304,10 +304,10 @@ func LaunchCoordinator(args Args) {
 		signal.Notify(ctrl, os.Interrupt, syscall.SIGTERM)
 		go func() {
 			<-ctrl
-			fmt.Println("Exiting")
+			log.Println("Exiting")
 			os.Exit(1)
 		}()
-		fmt.Println("Coordinator running... CTRL-C to exit.")
+		log.Println("Coordinator running... CTRL-C to exit.")
 
 		//////////////////////////////////////////////////////
 		// continually run lightning rounds to transmit messages
@@ -348,39 +348,38 @@ func LaunchCoordinator(args Args) {
 	}
 }
 
-func LaunchServer() {
-	log.Printf("TODO: server")
+// from cmd/server/server.go
+func LaunchServer(args Args) {
+	arg.MustParse(&args)
 
-	// // read configuration files
-	// serversFile := os.Args[1]
-	// groupsFile := os.Args[2]
-	// addr := os.Args[len(os.Args)-1]
+	serversFile := args.ServerFile
+	groupsFile := args.GroupFile
+	addr := args.Addr
+	errors.Addr = addr
 
-	// errors.Addr = addr
-	// servers, err := config.UnmarshalServersFromFile(serversFile)
-	// if err != nil {
-	// 	log.Fatalf("Could not read servers file %s", serversFile)
-	// }
+	log.Printf("Launching server with address %s", addr)
 
-	// groups, err := config.UnmarshalGroupsFromFile(groupsFile)
-	// if err != nil {
-	// 	log.Fatalf("Could not read group file %s", groupsFile)
-	// }
+	servers, err := config.UnmarshalServersFromFile(serversFile)
+	if err != nil {
+		log.Fatalf("Could not read servers file %s", serversFile)
+	}
 
-	// fmt.Println("addr", addr)
+	groups, err := config.UnmarshalGroupsFromFile(groupsFile)
+	if err != nil {
+		log.Fatalf("Could not read group file %s", groupsFile)
+	}
 
-	// // will start in blocked state
-	// h := server.NewHandler()
-	// server := server.NewServer(&config.Servers{Servers: servers}, &config.Groups{Groups: groups}, h, addr)
+	// will start in blocked state
+	h := server.NewHandler()
+	server := server.NewServer(&config.Servers{Servers: servers}, &config.Groups{Groups: groups}, h, addr)
 
-	// server.TcpConnections.LaunchAccepts()
-	// network.RunServer(h, server, servers, addr)
-	// config.Flush()
+	server.TcpConnections.LaunchAccepts()
+	network.RunServer(h, server, servers, addr)
+	config.Flush()
 }
 
 // from cmd/client/client.go
 func LaunchClient(args Args) {
-	log.Printf("Launching client...")
 	arg.MustParse(&args)
 
 	serversFile := args.ServerFile
@@ -388,6 +387,8 @@ func LaunchClient(args Args) {
 	clientsFile := args.ClientFile
 	addr := args.Addr
 	errors.Addr = addr
+
+	log.Printf("Launching client with address %s", addr)
 
 	servers, err := config.UnmarshalServersFromFile(serversFile)
 	if err != nil {
@@ -427,7 +428,7 @@ func main() {
 		LaunchClient(args)
 
 	case "server":
-		LaunchServer()
+		LaunchServer(args)
 
 	default:
 		p.WriteHelp(os.Stdout)
