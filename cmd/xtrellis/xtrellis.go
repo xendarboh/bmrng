@@ -406,10 +406,14 @@ func LaunchClient(args Args) {
 	}
 
 	clientRunner := client.NewClientRunner(servers, groups)
-	err = clientRunner.Connect()
-	if err != nil {
-		log.Fatalf("Could not make clients %v", err)
-	}
+
+	// This fails @ network/rpc_call.go callee.HandleSignedMessageStream
+	/*
+		err = clientRunner.Connect()
+		if err != nil {
+			log.Fatalf("Could not make clients %v", err)
+		}
+	*/
 
 	network.RunServer(nil, clientRunner, clients, addr)
 }
