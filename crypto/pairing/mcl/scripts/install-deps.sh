@@ -16,11 +16,11 @@ if [ ! -d /usr/local/include/mcl ]; then
     cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
     cmake --build build
     sudo cmake --build build --target install
-    if [ "$OS" == "Linux" ]; then
+    if [ "$OS" = "Linux" ]; then
         sudo ldconfig
     ## on M1 there is not much info on how to replace ldconfig
     ## it's deprecated and might not be needed in Darwin, MacOS's case.
-    elif [ "$OS" == "Darwin" ]; then
+    elif [ "$OS" = "Darwin" ]; then
         sudo update_dyld_shared_cache
     fi
 )
