@@ -13,13 +13,14 @@ import (
 
 // A gateway:
 // - receives messages to transmit through the mix-net for a particular client
-// - clients retrieve messages to transmit
+// - enables mix-net clients to retrieve messages to transmit
 // - receives final messages from the mix-net
 
 // Enable gateway? Used externally to conditionally use the gateway
 var Enable bool = false
 
-// Total message size including 8*2 bytes for serialized meta; initialization required
+// mix-net message size; initialization required
+// Total message size including 8*2 bytes for serialized meta
 var messageSize int64 = 0
 
 func Init(s int64, enable bool) {
@@ -32,6 +33,11 @@ func GetMaxDataSize() int64 {
 	// 8 bytes for each uint64 of serialization protocol
 	return messageSize - 8*2
 }
+
+////////////////////////////////////////////////////////////////////////
+// Message Queue
+// - each client has two message queues for In and Out
+////////////////////////////////////////////////////////////////////////
 
 // A message queue for each client
 type MessageQueue struct {
@@ -76,6 +82,13 @@ func (q *MessageQueue) Dequeue(index int) ([]byte, error) {
 		return nil, errors.New("index does not have a queue")
 	}
 }
+
+////////////////////////////////////////////////////////////////////////
+// Message Serialization
+// - a simple protocol to transmit data as mix-net messages
+// - format: < messageId uint64> <dataLength uint64> <data []byte>
+// - for the simulator, messageId is the clientId
+////////////////////////////////////////////////////////////////////////
 
 func messageSerialize(id uint64, data []byte) ([]byte, error) {
 	if !(messageSize > 0) {
@@ -134,12 +147,12 @@ func messageUnserialize(message []byte) (uint64, []byte, error) {
 	return id, data, nil
 }
 
-// Input a message into the gateway for a client
-func PutMessageForClient(clientId int64, message []byte) error {
-	msgQueueIn.Enqueue(int(clientId), message)
-
-	return nil
-}
+////////////////////////////////////////////////////////////////////////
+// Trellis mix-net hooks
+// - called within mix-net simulator
+// - round start: clients get messages from their In queue
+// - round end: final messages are placed in the clients Out queue
+////////////////////////////////////////////////////////////////////////
 
 // Output a message from the gateway for a given client.
 // If no messages in the client's message queue, then use a default.
@@ -196,4 +209,15 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 	}
 
 	return len(messageData) == numExpected
+}
+
+////////////////////////////////////////////////////////////////////////
+// Message I/O
+////////////////////////////////////////////////////////////////////////
+
+// Input a message into the gateway for a client
+func PutMessageForClient(clientId int64, message []byte) error {
+	msgQueueIn.Enqueue(int(clientId), message)
+
+	return nil
 }
