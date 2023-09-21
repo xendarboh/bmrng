@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -xe
+
 tmpdir=`mktemp -d`
 
 scriptdir=$(cd $(dirname $0); pwd -P)
