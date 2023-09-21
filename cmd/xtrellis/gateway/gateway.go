@@ -6,6 +6,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
 	coord "github.com/simonlangowski/lightning1/coordinator/messages"
@@ -23,9 +29,29 @@ var Enable bool = false
 // Total message size including 8*2 bytes for serialized meta
 var messageSize int64 = 0
 
-func Init(s int64, enable bool) {
+// filesystem directory to save final messages sent through the mix-net
+var messageDirectory string
+
+// proxy server address and port, listens for messages
+var proxyAddress string
+
+func Init(s int64, enable bool, addr string, dir string) {
 	messageSize = s
 	Enable = enable
+	proxyAddress = addr
+	messageDirectory = dir
+
+	if !enable {
+		return
+	}
+
+	// create the message directory if not exists
+	err := os.MkdirAll(messageDirectory, os.ModePerm)
+	if err != nil {
+		panic(fmt.Sprintf("[Gateway] Error creating message directory: %v\n", err))
+	}
+
+	go proxyStart()
 }
 
 // The max size of the data element of a message accounting for protocol data
@@ -220,4 +246,54 @@ func PutMessageForClient(clientId int64, message []byte) error {
 	msgQueueIn.Enqueue(int(clientId), message)
 
 	return nil
+}
+
+// Start gateway proxy to listen for incoming messages
+func proxyStart() {
+	// Create a listener for incoming connections
+	listener, err := net.Listen("tcp", proxyAddress)
+	if err != nil {
+		log.Printf("[Gateway] Error listening: %v\n", err)
+		return
+	}
+	defer listener.Close()
+
+	log.Printf("[Gateway] Listening on %s...\n", proxyAddress)
+
+	// Accept incoming connections
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Printf("[Gateway] Error accepting connection: %v\n", err)
+			continue
+		}
+
+		go proxyHandleConnection(conn)
+	}
+}
+
+func proxyHandleConnection(conn net.Conn) {
+	defer conn.Close()
+
+	// Generate a unique filename based on the current timestamp
+	filename := fmt.Sprintf("msg_%d.txt", time.Now().UnixNano())
+
+	// Create a new file for the incoming data
+	file, err := os.Create(filepath.Join(messageDirectory, filename))
+	if err != nil {
+		log.Printf("[Gateway] Error creating file: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	log.Printf("[Gateway] Receiving data and saving to %s...\n", filename)
+
+	// Copy data from the connection to the file
+	_, err = io.Copy(file, conn)
+	if err != nil {
+		log.Printf("[Gateway] Error copying data: %v\n", err)
+		return
+	}
+
+	log.Printf("[Gateway] Data received and saved to %s\n", filename)
 }

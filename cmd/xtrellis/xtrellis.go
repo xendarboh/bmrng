@@ -40,9 +40,11 @@ type Args struct {
 	////////////////////////////////////
 	// coordinator
 	////////////////////////////////////
-	EnableGateway bool `default:"False" help:"enable client message gateway"`
-	RoundInterval int  `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
-	RunExperiment bool `default:"False" help:"run coordinator experiment"`
+	GatewayAddress string `default:"localhost:9000" help:"gateway proxy address for receiving messages to mix"`
+	GatewayEnable  bool   `default:"False" help:"enable client message gateway"`
+	GatewayMsgDir  string `default:"/tmp/xtrellis-io" help:"local filesystem directory for mixed messages"`
+	RoundInterval  int    `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
+	RunExperiment  bool   `default:"False" help:"run coordinator experiment"`
 
 	F           float64 `default:"0"`
 	RunType     int     `default:"1"`
@@ -146,9 +148,9 @@ func LaunchCoordinator(args Args) {
 	}
 
 	////////////////////////////////////////////////////////////////////////
-	// setup gateway
+	// setup gateway and start proxy if enabled
 	////////////////////////////////////////////////////////////////////////
-	gateway.Init(int64(args.MessageSize), args.EnableGateway)
+	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddress, args.GatewayMsgDir)
 
 	////////////////////////////////////////////////////////////////////////
 	// run experiment
