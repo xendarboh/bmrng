@@ -6,12 +6,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
 	coord "github.com/simonlangowski/lightning1/coordinator/messages"
@@ -275,25 +272,17 @@ func proxyStart() {
 func proxyHandleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	// Generate a unique filename based on the current timestamp
-	filename := fmt.Sprintf("msg_%d.txt", time.Now().UnixNano())
 
-	// Create a new file for the incoming data
-	file, err := os.Create(filepath.Join(messageDirectory, filename))
-	if err != nil {
-		log.Printf("[Gateway] Error creating file: %v\n", err)
-		return
+
+	for {
+		bufferData := make([]byte, GetMaxDataSize())
+		n, err := conn.Read(bufferData)
+		if err != nil {
+			log.Printf("Received data")
+			return
+		}
+
+		message := bufferData[:n]
+		PutMessageForClient(0, message)
 	}
-	defer file.Close()
-
-	log.Printf("[Gateway] Receiving data and saving to %s...\n", filename)
-
-	// Copy data from the connection to the file
-	_, err = io.Copy(file, conn)
-	if err != nil {
-		log.Printf("[Gateway] Error copying data: %v\n", err)
-		return
-	}
-
-	log.Printf("[Gateway] Data received and saved to %s\n", filename)
 }
