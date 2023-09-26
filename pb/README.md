@@ -1,16 +1,28 @@
-# Buf workspace example
+# 0KN Protocol Buffers
+
+Powered by [buf](https://buf.build).
+
+Originating from the [buf workspace example](https://github.com/bufbuild/buf-examples/tree/main/workspace).
+
+## TL;DR
+
+With buf cli installed, run `buf generate` to generate code from `.proto` files.
+
+---
+
+## Buf workspace example
 
 > You need to have the [`buf` CLI][install] installed to follow along with this example.
 
 This directory provides an example of a Buf [workspace] that contains multiple Buf [modules] that are meant to be consumed as dependencies by other Protobuf projects. There are two modules in this workspace:
 
-* [`observabilityapi`](./observabilityapi) defines an observability-related service.
-* [`observabilitytypes`](./observabilitytypes) defines many of the types used by the service in the `observabilityapi` module.
+- [`observabilityapi`](./observabilityapi) defines an observability-related service.
+- [`observabilitytypes`](./observabilitytypes) defines many of the types used by the service in the `observabilityapi` module.
 
 Both modules are available on the [Buf Schema Registry][bsr]:
 
-* [`buf.build/buf-examples/observabilityapi`][bsr-api]
-* [`buf.build/buf-examples/observabilitytypes`][bsr-types]
+- [`buf.build/buf-examples/observabilityapi`][bsr-api]
+- [`buf.build/buf-examples/observabilitytypes`][bsr-types]
 
 ## Structure
 
