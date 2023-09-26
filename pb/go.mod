@@ -1,4 +1,4 @@
-module github.com/bufbuild/buf-examples/workspace
+module github.com/31333337/repo/pb
 
 go 1.20
 

@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 
-	apiv2 "github.com/bufbuild/buf-examples/workspace/gen/proto/go/api/v2"
-	"github.com/bufbuild/buf-examples/workspace/gen/proto/go/api/v2/apiv2connect"
+	apiv2 "github.com/31333337/repo/pb/gen/proto/go/api/v2"
+	"github.com/31333337/repo/pb/gen/proto/go/api/v2/apiv2connect"
 	"github.com/bufbuild/connect-go"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
