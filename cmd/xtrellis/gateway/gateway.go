@@ -7,11 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"os"
 
+	gatewayv1 "github.com/31333337/repo/pb/gen/proto/go/gateway/v1"
 	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
 	coord "github.com/simonlangowski/lightning1/coordinator/messages"
+	"google.golang.org/protobuf/proto"
 )
 
 // A gateway:
@@ -25,6 +28,9 @@ var Enable bool = false
 // mix-net message size; initialization required
 // Total message size including 8*2 bytes for serialized meta
 var messageSize int64 = 0
+
+// packet protocol size; calculated and cached by GetMaxProtocolSize
+var protocolSize int64 = 0
 
 // filesystem directory to save final messages sent through the mix-net
 var messageDirectory string
@@ -51,10 +57,37 @@ func Init(s int64, enable bool, addr string, dir string) {
 	go proxyStart()
 }
 
-// The max size of the data element of a message accounting for protocol data
+// Max gateway packet protocol size in bytes, not counting packet data
+// The calculated value is cached
+func GetMaxProtocolSize() int64 {
+	if protocolSize > 0 {
+		// return cached result
+		return protocolSize
+	}
+
+	// Create a packet with max data sizes, marshal it, then measure the length minus data size.
+	// For message wire type sizes, refer to https://protobuf.dev/programming-guides/encoding/#bools-and-enums
+
+	packet := &gatewayv1.Packet{
+		Type:     math.MaxInt32,
+		StreamId: math.MaxUint64,
+		Sequence: math.MaxUint64,
+		Length:   math.MaxUint32,
+		Data:     []byte("----"), // not nil
+	}
+
+	packed, err := proto.Marshal(packet)
+	if err != nil {
+		panic(err)
+	}
+
+	protocolSize = int64(len(packed) - len(packet.Data))
+	return protocolSize
+}
+
+// The max size of message packet data accounting for protocol size
 func GetMaxDataSize() int64 {
-	// 8 bytes for each uint64 of serialization protocol
-	return messageSize - 8*2
+	return messageSize - GetMaxProtocolSize()
 }
 
 ////////////////////////////////////////////////////////////////////////
