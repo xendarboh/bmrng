@@ -3,13 +3,15 @@ package gateway
 import (
 	"bytes"
 	"container/list"
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 
 	gatewayv1 "github.com/31333337/repo/pb/gen/proto/go/gateway/v1"
 	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
@@ -58,6 +60,7 @@ func Init(s int64, enable bool, addr string, dir string) {
 }
 
 // Max gateway packet protocol size in bytes, not counting packet data
+// This is a good estimate as protobuf serialized message size are inherently variant
 // The calculated value is cached
 func GetMaxProtocolSize() int64 {
 	if protocolSize > 0 {
@@ -69,7 +72,7 @@ func GetMaxProtocolSize() int64 {
 	// For message wire type sizes, refer to https://protobuf.dev/programming-guides/encoding/#bools-and-enums
 
 	packet := &gatewayv1.Packet{
-		Type:     math.MaxInt32,
+		Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
 		StreamId: math.MaxUint64,
 		Sequence: math.MaxUint64,
 		Length:   math.MaxUint32,
@@ -140,67 +143,71 @@ func (q *MessageQueue) Dequeue(index int) ([]byte, error) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Message Serialization
-// - a simple protocol to transmit data as mix-net messages
-// - format: < messageId uint64> <dataLength uint64> <data []byte>
-// - for the simulator, messageId is the clientId
+// Packets & Message Serialization
+// - a protocol to transmit data streams as packetized mix-net messages
 ////////////////////////////////////////////////////////////////////////
 
-func messageSerialize(id uint64, data []byte) ([]byte, error) {
-	if !(messageSize > 0) {
-		return nil, errors.New("Invalid messageSize")
+// Get space in bytes for the packed packet to meet message size
+func getPacketSpace(packet *gatewayv1.Packet) (int64, error) {
+	packed, err := proto.Marshal(packet)
+	if err != nil {
+		return 0, err
 	}
 
-	buffer := new(bytes.Buffer)
+	// bytes of space to fill
+	space := messageSize - int64(len(packed))
 
-	// serialize uint64 for message id
-	if err := binary.Write(buffer, binary.LittleEndian, id); err != nil {
-		return nil, errors.New(fmt.Sprintf("Error serializing uint64 (id): %s", err))
+	// if packet data is empty
+	if space > 0 && bytes.Equal(packet.Data, []byte("")) {
+		// account for 2 protocol bytes when data is not empty
+		space -= 2
 	}
 
-	// serialize uint64 for data length
-	dataLength := uint64(len(data))
-	if err := binary.Write(buffer, binary.LittleEndian, dataLength); err != nil {
-		return nil, errors.New(fmt.Sprintf("Error serializing uint64 (length): %s", err))
-	}
-
-	// serialize message data
-	if int64(len(data)) > GetMaxDataSize() {
-		return nil, errors.New("data exceeds max size")
-	}
-	buffer.Write(data)
-
-	// pad to the message size
-	padding := make([]byte, messageSize-int64(buffer.Len()))
-	buffer.Write(padding)
-
-	return buffer.Bytes(), nil
+	return space, nil
 }
 
-func messageUnserialize(message []byte) (uint64, []byte, error) {
-	if !(messageSize > 0) {
-		return 0, nil, errors.New("Invalid messageSize")
+// Pack a packet by filling with space to meet the target message size
+func packetPack(packet *gatewayv1.Packet) ([]byte, error) {
+	space, err := getPacketSpace(packet)
+	if err != nil {
+		return nil, err
 	}
 
-	buffer := bytes.NewReader(message)
-
-	// deserialize uint64 for message id
-	var id uint64
-	if err := binary.Read(buffer, binary.LittleEndian, &id); err != nil {
-		return 0, nil, errors.New(fmt.Sprintf("Error deserializing uint64 (id): %s", err))
+	if space < 0 {
+		return nil, errors.New("packet too large for message size")
 	}
 
-	// deserialize uint64 for data lengthd
-	var dataLength uint64
-	if err := binary.Read(buffer, binary.LittleEndian, &dataLength); err != nil {
-		return 0, nil, errors.New(fmt.Sprintf("Error deserializing uint64 (length): %s", err))
+	if space > 0 {
+		// fill the space used by the data,
+		// the packet length enables decoding
+		buffer := new(bytes.Buffer)
+		buffer.Write(packet.Data)
+		buffer.Write(make([]byte, space))
+		packet.Data = buffer.Bytes()
 	}
 
-	// deserialize data
-	data := make([]byte, dataLength)
+	packed, err := proto.Marshal(packet)
+	if err != nil {
+		return nil, err
+	}
+
+	return packed, nil
+}
+
+func packetUnpack(packedPacket []byte) (*gatewayv1.Packet, error) {
+	packet := &gatewayv1.Packet{}
+	err := proto.Unmarshal(packedPacket, packet)
+	if err != nil {
+		return nil, err
+	}
+
+	// deserialize padded packet data based on packet length
+	buffer := bytes.NewReader(packet.Data)
+	data := make([]byte, packet.Length)
 	buffer.Read(data)
+	packet.Data = data
 
-	return id, data, nil
+	return packet, nil
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -214,20 +221,18 @@ func messageUnserialize(message []byte) (uint64, []byte, error) {
 // If no messages in the client's message queue, then use a default.
 func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
 	// get next message data queued for this client
-	data, err := msgQueueIn.Dequeue(int(clientId))
+	message, err := msgQueueIn.Dequeue(int(clientId))
 
-	// if no message found in queue, use default data
+	// if no message found in queue, use a dummy
 	if err != nil {
-		data = []byte("")
-	}
-
-	// use clientId as message id
-	id := uint64(clientId)
-
-	// serialize message
-	message, err := messageSerialize(id, data)
-	if err != nil {
-		panic(err)
+		packet := &gatewayv1.Packet{
+			Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
+			StreamId: uint64(clientId), // use client id as stream id for round uniqueness
+			Sequence: 0,
+			Length:   0,
+			Data:     nil,
+		}
+		message, err = packetPack(packet)
 	}
 
 	utils.DebugLog("data=%x, message=%x", data, message)
@@ -236,46 +241,62 @@ func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
 }
 
 // Send final messages from the mix-net here.
-// This replaces coordinator.Check testing for message ids within serialization.
-// Note: There are duplicates, message ids are used to sort unique.
+// This replaces `coordinator.Check` testing for message ids.
+// Note: There are duplicates, so sort unique.
 func CheckFinalMessages(messages [][]byte, numExpected int) bool {
-	messageData := make(map[uint64][]byte)
 
-	// test messages are consecutive integers up to numExpected
+	/*
+		This is inherently hacky within the state/aspect of trellis simulation.
+		For now:
+		- extract unique messages
+		- enqueue non-dummy packets as gateway output
+		- compare number of unique messages with number expected
+	*/
+
+	// extract unique messages from duplicates
+	uniquePackets := make(map[uint64]*gatewayv1.Packet)
 	for _, m := range messages {
-		id, data, err := messageUnserialize(m)
+		packet, err := packetUnpack(m)
 		if err != nil {
 			panic(err)
 		}
-		if id < uint64(numExpected) {
-			messageData[id] = data
+
+		var uid uint64 = 0
+
+		if packet.Type == gatewayv1.PacketType_PACKET_TYPE_DUMMY {
+			uid = packet.StreamId
 		} else {
-			return false
+			uid = packet.StreamId + packet.Sequence
+		}
+
+		uniquePackets[uid] = packet
+	}
+
+	// put unique non-dummy packets in the out queue
+	for _, p := range uniquePackets {
+		if p.Type != gatewayv1.PacketType_PACKET_TYPE_DUMMY {
+			msgQueueOut.Enqueue(int(p.StreamId), p.Data) // TODO: support data reassembly from packets+protocol
 		}
 	}
 
-	// for each final message
-	for i, s := range messageData {
-		// if the message data has length, then it was fed to the client
-		if len(s) > 0 {
-			// add the data to the client's out queue
-			msgQueueOut.Enqueue(int(i), s)
-		}
-		utils.DebugLog("messageData[%d] = '%x'", i, s)
-	}
-
-	return len(messageData) == numExpected
+	return len(uniquePackets) == numExpected
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Message I/O
+// Gateway Packet I/O
 ////////////////////////////////////////////////////////////////////////
 
-// Input a message into the gateway for a client
-func PutMessageForClient(clientId int64, message []byte) error {
-	msgQueueIn.Enqueue(int(clientId), message)
+// Send a message through the mix-net.
+func sendPacket(packet *gatewayv1.Packet) {
+	// pack the packet into a static-sized message
+	message, err := packetPack(packet)
+	if err != nil {
+		// TODO: handle error less fatally
+		panic(fmt.Sprintf("[Gateway] Error creating message from packet: %v\n", err))
+	}
 
-	return nil
+	// stage message for a mix-net client to pick it up
+	msgQueueIn.Enqueue(0, message) // TODO: message queue per stream, not client
 }
 
 // Start gateway proxy to listen for incoming messages
@@ -305,17 +326,70 @@ func proxyStart() {
 func proxyHandleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	streamId := getStreamId(conn)
+	var packetCounter uint64 = 0
 
+	utils.DebugLog("[Gateway] Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
+
+	// send PACKET_TYPE_START for a new transmission
+	packet := &gatewayv1.Packet{
+		Type:     gatewayv1.PacketType_PACKET_TYPE_START,
+		StreamId: streamId,
+		Sequence: 0,
+		Length:   0,
+		Data:     nil,
+	}
+	sendPacket(packet)
+	packetCounter++
 
 	for {
-		bufferData := make([]byte, GetMaxDataSize())
+		// TODO: more data space may be available if protocol uses variant sizes, then measure data size per-packet
+		dataSize := GetMaxDataSize()
+
+		bufferData := make([]byte, dataSize)
 		n, err := conn.Read(bufferData)
+
 		if err != nil {
-			log.Printf("Received data")
+			packetFinal := &gatewayv1.Packet{
+				StreamId: streamId,
+				Sequence: packetCounter,
+			}
+
+			if err == io.EOF {
+				packetFinal.Type = gatewayv1.PacketType_PACKET_TYPE_END
+				utils.DebugLog("[Gateway] Finished receiving data stream")
+
+			} else {
+				packetFinal.Type = gatewayv1.PacketType_PACKET_TYPE_ERROR
+				utils.DebugLog("[Gateway] Error receiving data stream: %s", err.Error())
+			}
+
+			sendPacket(packetFinal)
 			return
 		}
 
-		message := bufferData[:n]
-		PutMessageForClient(0, message)
+		packet := &gatewayv1.Packet{
+			Type:     gatewayv1.PacketType_PACKET_TYPE_DATA,
+			StreamId: streamId,
+			Sequence: packetCounter,
+			Length:   uint32(n),
+			Data:     bufferData[:n],
+		}
+		sendPacket(packet)
+		packetCounter++
 	}
+}
+
+// cheap hack to produce a unique id from a network connection
+// TODO?: use UUID module
+func getStreamId(conn net.Conn) uint64 {
+	id0 := strings.Trim(fmt.Sprintf("%x", conn), "&{}")
+
+	// parse numeric string as hexadecimal integer (base 16)
+	id, err := strconv.ParseInt(id0, 16, 64)
+	if err != nil {
+		panic("[Gateway] uuid conversion failed")
+	}
+
+	return uint64(id)
 }
