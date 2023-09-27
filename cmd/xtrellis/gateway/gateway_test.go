@@ -8,30 +8,29 @@ import (
 )
 
 func TestMessageQueue(t *testing.T) {
-	id := 3
 	v1 := []byte("test1")
 	v2 := []byte("test2")
 
 	q := NewMessageQueue()
 
-	q.Enqueue(id, v1)
-	q.Enqueue(id, v2)
+	q.Enqueue(v1)
+	q.Enqueue(v2)
 
-	_, err := q.Dequeue(4)
-	if err == nil {
-		t.Log("expected index to not have a queue")
-		t.FailNow()
-	}
-
-	m1, err := q.Dequeue(id)
+	m1, err := q.Dequeue()
 	if !bytes.Equal(m1, v1) {
 		t.Log("bytes not equal")
 		t.FailNow()
 	}
 
-	m2, err := q.Dequeue(id)
+	m2, err := q.Dequeue()
 	if !bytes.Equal(m2, v2) {
 		t.Log("bytes not equal")
+		t.FailNow()
+	}
+
+	_, err = q.Dequeue()
+	if err == nil {
+		t.Log("expected queue to be empty")
 		t.FailNow()
 	}
 }

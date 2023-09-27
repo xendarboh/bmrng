@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	gatewayv1 "github.com/31333337/repo/pb/gen/proto/go/gateway/v1"
 	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
@@ -94,18 +95,21 @@ func GetMaxDataSize() int64 {
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Message Queue
-// - each client has two message queues for In and Out
+// Message Queues
+// - FIFO queues are maintained for messages In and Out of the Gateway
+// - incoming gateway data streams are packetized and packed as messages
+// - mix-net clients retrieve the next message for each lightning round
 ////////////////////////////////////////////////////////////////////////
 
 // A message queue for each client
 type MessageQueue struct {
-	items map[int]*list.List
+	items *list.List
+	mutex sync.Mutex
 }
 
 func NewMessageQueue() *MessageQueue {
 	return &MessageQueue{
-		items: make(map[int]*list.List),
+		items: list.New(),
 	}
 }
 
@@ -115,31 +119,26 @@ var msgQueueIn = NewMessageQueue()
 // Outgoing message queue; stores final messages as they arrive out of the mix-net
 var msgQueueOut = NewMessageQueue()
 
-// Enqueue data into the queue at the given index
-func (q *MessageQueue) Enqueue(index int, val []byte) {
-	// Initialize the queue if it doesn't exist
-	if _, exists := q.items[index]; !exists {
-		q.items[index] = list.New()
-	}
-	// Add to the queue
-	q.items[index].PushBack(val)
+// Enqueue data into the message queue
+func (q *MessageQueue) Enqueue(m []byte) {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	q.items.PushBack(m)
 }
 
 // Dequeue data from the queue at the given index
-func (q *MessageQueue) Dequeue(index int) ([]byte, error) {
-	// pop a message from the queue for a specific client
-	if queue, exists := q.items[index]; exists {
-		if element := queue.Front(); element != nil {
-			// Pop the front element from the queue
-			message := element.Value.([]byte)
-			queue.Remove(element)
-			return message, nil
-		} else {
-			return nil, errors.New("queue is empty for the index")
-		}
-	} else {
-		return nil, errors.New("index does not have a queue")
+func (q *MessageQueue) Dequeue() ([]byte, error) {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	if element := q.items.Front(); element != nil {
+		// Pop the front element from the queue
+		message := element.Value.([]byte)
+		q.items.Remove(element)
+		return message, nil
 	}
+
+	return nil, errors.New("queue is empty")
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -213,29 +212,25 @@ func packetUnpack(packedPacket []byte) (*gatewayv1.Packet, error) {
 ////////////////////////////////////////////////////////////////////////
 // Trellis mix-net hooks
 // - called within mix-net simulator
-// - round start: clients get messages from their In queue
-// - round end: final messages are placed in the clients Out queue
+// - round start: clients get messages from the In queue
+// - round end: final messages are checked and placed in the Out queue
 ////////////////////////////////////////////////////////////////////////
 
-// Output a message from the gateway for a given client.
-// If no messages in the client's message queue, then use a default.
+// Get the next message for a client to send through the mix-net
+// If message queue is empty, use a dummy message
 func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
-	// get next message data queued for this client
-	message, err := msgQueueIn.Dequeue(int(clientId))
+	message, err := msgQueueIn.Dequeue()
 
-	// if no message found in queue, use a dummy
 	if err != nil {
 		packet := &gatewayv1.Packet{
 			Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
-			StreamId: uint64(clientId), // use client id as stream id for round uniqueness
+			StreamId: uint64(clientId), // use client id for uniqueness within round
 			Sequence: 0,
 			Length:   0,
 			Data:     nil,
 		}
 		message, err = packetPack(packet)
 	}
-
-	utils.DebugLog("data=%x, message=%x", data, message)
 
 	return message, err
 }
@@ -275,7 +270,7 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 	// put unique non-dummy packets in the out queue
 	for _, p := range uniquePackets {
 		if p.Type != gatewayv1.PacketType_PACKET_TYPE_DUMMY {
-			msgQueueOut.Enqueue(int(p.StreamId), p.Data) // TODO: support data reassembly from packets+protocol
+			msgQueueOut.Enqueue(p.Data) // TODO: support data reassembly from packets+protocol
 		}
 	}
 
@@ -296,7 +291,7 @@ func sendPacket(packet *gatewayv1.Packet) {
 	}
 
 	// stage message for a mix-net client to pick it up
-	msgQueueIn.Enqueue(0, message) // TODO: message queue per stream, not client
+	msgQueueIn.Enqueue(message)
 }
 
 // Start gateway proxy to listen for incoming messages
