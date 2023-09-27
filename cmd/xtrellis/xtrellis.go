@@ -121,6 +121,15 @@ func LaunchCoordinator(args Args) {
 	log.Printf("%+v", args)
 
 	////////////////////////////////////////////////////////////////////////
+	// setup gateway and start proxy if enabled
+	////////////////////////////////////////////////////////////////////////
+	if args.MessageSize <= int(gateway.GetMaxProtocolSize()) {
+		log.Fatal("Error: MessageSize too small for Gateway packet protocol")
+	}
+
+	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddress, args.GatewayMsgDir)
+
+	////////////////////////////////////////////////////////////////////////
 	// setup network
 	////////////////////////////////////////////////////////////////////////
 	var net *coordinator.CoordinatorNetwork
@@ -146,11 +155,6 @@ func LaunchCoordinator(args Args) {
 		net = coordinator.NewLocalNetwork(serverConfigs, groupConfigs, clientConfigs)
 		defer net.KillAll()
 	}
-
-	////////////////////////////////////////////////////////////////////////
-	// setup gateway and start proxy if enabled
-	////////////////////////////////////////////////////////////////////////
-	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddress, args.GatewayMsgDir)
 
 	////////////////////////////////////////////////////////////////////////
 	// run experiment
