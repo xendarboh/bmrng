@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -113,10 +114,13 @@ func NewMessageQueue() *MessageQueue {
 	}
 }
 
-// Incoming message queue; stores messages as they are received then made available for mix-net xfer each client round
+// Incoming message queue
+// Stores packetized messages as they are received by the gateway proxy
+// then made available to mix-clients for transmission each round
 var msgQueueIn = NewMessageQueue()
 
-// Outgoing message queue; stores final messages as they arrive out of the mix-net
+// Outgoing message queue
+// Stores packetized messages as they are received from the mix-net
 var msgQueueOut = NewMessageQueue()
 
 // Enqueue data into the message queue
@@ -235,46 +239,59 @@ func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
 	return message, err
 }
 
-// Send final messages from the mix-net here.
+// Final messages from a mix-net round are sent here.
 // This replaces `coordinator.Check` testing for message ids.
-// Note: There are duplicates, so sort unique.
+// Note: There are duplicates (why?), so sort unique.
 func CheckFinalMessages(messages [][]byte, numExpected int) bool {
-
-	/*
-		This is inherently hacky within the state/aspect of trellis simulation.
-		For now:
-		- extract unique messages
-		- enqueue non-dummy packets as gateway output
-		- compare number of unique messages with number expected
-	*/
-
-	// extract unique messages from duplicates
-	uniquePackets := make(map[uint64]*gatewayv1.Packet)
+	// count unique messages and extract unique non-dummy packets
+	uniqueMessages := make(map[uint64]uint64)
+	var uniquePackets []*gatewayv1.Packet
 	for _, m := range messages {
 		packet, err := packetUnpack(m)
 		if err != nil {
 			panic(err)
 		}
 
-		var uid uint64 = 0
+		uid := packet.StreamId + packet.Sequence
 
-		if packet.Type == gatewayv1.PacketType_PACKET_TYPE_DUMMY {
-			uid = packet.StreamId
-		} else {
-			uid = packet.StreamId + packet.Sequence
+		// if message is unique
+		if uniqueMessages[uid] == 0 {
+			// mark message as seen
+			uniqueMessages[uid] = uid
+
+			// if not a dummy, collect its packet
+			if packet.Type != gatewayv1.PacketType_PACKET_TYPE_DUMMY {
+				uniquePackets = append(uniquePackets, packet)
+			}
 		}
-
-		uniquePackets[uid] = packet
 	}
 
-	// put unique non-dummy packets in the out queue
+	sortPackets(uniquePackets)
+
+	// enqueue unique sorted non-dummy packets as gateway output messages
 	for _, p := range uniquePackets {
-		if p.Type != gatewayv1.PacketType_PACKET_TYPE_DUMMY {
-			msgQueueOut.Enqueue(p.Data) // TODO: support data reassembly from packets+protocol
+		message, err := packetPack(p) // repack... not awesome
+		if err != nil {
+			panic(err)
 		}
+		msgQueueOut.Enqueue(message)
 	}
 
-	return len(uniquePackets) == numExpected
+	// compare unique messages with number expected
+	return len(uniqueMessages) == numExpected
+}
+
+// Sort packets by StreamId, Sequence
+func sortPackets(packets []*gatewayv1.Packet) {
+	sort.Slice(packets, func(i, j int) bool {
+		pi, pj := packets[i], packets[j]
+		switch {
+		case pi.StreamId != pj.StreamId:
+			return pi.StreamId < pj.StreamId
+		default:
+			return pi.Sequence < pj.Sequence
+		}
+	})
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -326,7 +343,7 @@ func proxyHandleConnection(conn net.Conn) {
 
 	utils.DebugLog("[Gateway] Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
 
-	// send PACKET_TYPE_START for a new transmission
+	// start a new transmission
 	packet := &gatewayv1.Packet{
 		Type:     gatewayv1.PacketType_PACKET_TYPE_START,
 		StreamId: streamId,
@@ -345,6 +362,7 @@ func proxyHandleConnection(conn net.Conn) {
 		n, err := conn.Read(bufferData)
 
 		if err != nil {
+			// end transmission
 			packetFinal := &gatewayv1.Packet{
 				StreamId: streamId,
 				Sequence: packetCounter,
@@ -363,6 +381,7 @@ func proxyHandleConnection(conn net.Conn) {
 			return
 		}
 
+		// send packetized data
 		packet := &gatewayv1.Packet{
 			Type:     gatewayv1.PacketType_PACKET_TYPE_DATA,
 			StreamId: streamId,
