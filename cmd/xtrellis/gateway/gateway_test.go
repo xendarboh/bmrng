@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 
 	gatewayv1 "github.com/31333337/repo/pb/gen/proto/go/gateway/v1"
@@ -132,6 +133,53 @@ func TestPacketUnpack(t *testing.T) {
 
 	if !bytes.Equal(data, p2.Data) {
 		t.Log("packet Data not equal")
+		t.FailNow()
+	}
+}
+
+func TestPacketsSort(t *testing.T) {
+	var packets = []*gatewayv1.Packet{
+		{
+			StreamId: 20,
+			Sequence: 0,
+		},
+		{
+			StreamId: 10,
+			Sequence: 2,
+		},
+		{
+			StreamId: 10,
+			Sequence: 1,
+		},
+		{
+			StreamId: 20,
+			Sequence: 1,
+		},
+	}
+
+	var sorted = []*gatewayv1.Packet{
+		{
+			StreamId: 10,
+			Sequence: 1,
+		},
+		{
+			StreamId: 10,
+			Sequence: 2,
+		},
+		{
+			StreamId: 20,
+			Sequence: 0,
+		},
+		{
+			StreamId: 20,
+			Sequence: 1,
+		},
+	}
+
+	sortPackets(packets)
+
+	if !reflect.DeepEqual(packets, sorted) {
+		t.Log("packets not sorted")
 		t.FailNow()
 	}
 }
