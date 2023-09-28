@@ -119,9 +119,14 @@ func NewMessageQueue() *MessageQueue {
 // then made available to mix-clients for transmission each round
 var msgQueueIn = NewMessageQueue()
 
-// Outgoing message queue
-// Stores packetized messages as they are received from the mix-net
-var msgQueueOut = NewMessageQueue()
+// Outgoing queues for data leaving the mix-net
+// Data is stored uniquely for each packet stream as it leaves the mix-net
+var msgOut = make(map[uint64]*MessageQueue)
+var msgOutMu sync.Mutex
+
+// Set to true for each packet stream when the stream's transmsission through the mix-net ends
+var msgOutStreamEnded = make(map[uint64]bool)
+var msgOutStreamEndedMu sync.Mutex
 
 // Enqueue data into the message queue
 func (q *MessageQueue) Enqueue(m []byte) {
@@ -254,6 +259,8 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 			panic(err)
 		}
 
+		// For data packets: `StreamId` is expected to be universally unique to the input stream
+		// For dummy packets: `StreamId` is only unique within a single round
 		uid := packet.StreamId + packet.Sequence
 
 		// if message is unique
@@ -270,13 +277,24 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 
 	sortPackets(uniquePackets)
 
-	// enqueue unique sorted non-dummy packets as gateway output messages
+	// for unique sorted non-dummy packets, store data as gateway output messages for each stream
+	msgOutMu.Lock()
+	defer msgOutMu.Unlock()
 	for _, p := range uniquePackets {
-		message, err := packetPack(p) // repack... not awesome
-		if err != nil {
-			panic(err)
+		id := p.StreamId
+		switch p.Type {
+		case gatewayv1.PacketType_PACKET_TYPE_START:
+			msgOut[id] = NewMessageQueue()
+			break
+		case gatewayv1.PacketType_PACKET_TYPE_DATA:
+			msgOut[id].Enqueue(p.Data)
+			break
+		case gatewayv1.PacketType_PACKET_TYPE_END:
+			msgOutStreamEndedMu.Lock()
+			msgOutStreamEnded[id] = true
+			msgOutStreamEndedMu.Unlock()
+			break
 		}
-		msgQueueOut.Enqueue(message)
 		utils.DebugLog("⭐ data OUT [%d][%d] += '%s'", p.StreamId, p.Sequence, p.Data)
 	}
 
