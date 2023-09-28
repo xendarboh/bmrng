@@ -20,7 +20,7 @@ RUN apt update \
   && rm -rf /v \ar/lib/apt/lists/*
 
 # install go
-ARG VERSION_GO=1.17.3
+ARG VERSION_GO=1.21.1
 RUN export F="go${VERSION_GO}.linux-amd64.tar.gz" \
   && wget https://golang.org/dl/${F} \
   && tar -C /usr/local -xzf ${F} \
