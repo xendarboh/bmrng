@@ -36,11 +36,13 @@ WORKDIR /opt/trellis
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
-COPY . .
 
-# build and install mcl
+# build and install mcl; use docker build cache
+COPY ./crypto/pairing/mcl/scripts ./crypto/pairing/mcl/scripts
 RUN ./crypto/pairing/mcl/scripts/install-deps.sh \
   && ldconfig
+
+COPY . .
 
 # build trellis; server, client, coordinator
 RUN true \
