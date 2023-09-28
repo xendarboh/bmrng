@@ -234,6 +234,8 @@ func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
 			Data:     nil,
 		}
 		message, err = packetPack(packet)
+	} else {
+		utils.DebugLog("⭐ data IN")
 	}
 
 	return message, err
@@ -275,6 +277,7 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 			panic(err)
 		}
 		msgQueueOut.Enqueue(message)
+		utils.DebugLog("⭐ data OUT [%d][%d] += '%s'", p.StreamId, p.Sequence, p.Data)
 	}
 
 	// compare unique messages with number expected
@@ -306,6 +309,8 @@ func sendPacket(packet *gatewayv1.Packet) {
 		// TODO: handle error less fatally
 		panic(fmt.Sprintf("[Gateway] Error creating message from packet: %v\n", err))
 	}
+
+	utils.DebugLog("[Gateway] Send packet!\n🔶 %v", packet)
 
 	// stage message for a mix-net client to pick it up
 	msgQueueIn.Enqueue(message)
