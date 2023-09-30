@@ -11,9 +11,11 @@ import (
 	"log"
 	"math"
 	"net"
+	"net/http"
 	"os"
 	"sort"
 	"sync"
+	"time"
 
 	gatewayv1 "github.com/31333337/repo/pb/gen/proto/go/gateway/v1"
 	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
@@ -58,7 +60,11 @@ func Init(s int64, enable bool, addr string, dir string) {
 		panic(fmt.Sprintf("[Gateway] Error creating message directory: %v\n", err))
 	}
 
+	// data in -> proxy -> gateway -> mix-net
 	go proxyStart()
+
+	// mix-net -> gateway -> http server -> data out
+	go httpServerStart()
 }
 
 // Max gateway packet protocol size in bytes, not counting packet data
@@ -295,7 +301,6 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 			msgOutStreamEndedMu.Unlock()
 			break
 		}
-		utils.DebugLog("⭐ data OUT [%d][%d] += '%s'", p.StreamId, p.Sequence, p.Data)
 	}
 
 	// compare unique messages with number expected
@@ -318,6 +323,10 @@ func sortPackets(packets []*gatewayv1.Packet) {
 ////////////////////////////////////////////////////////////////////////
 // Gateway Packet I/O
 ////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////
+// Gateway Data Input
+////////////////////////////////////
 
 // Send a message through the mix-net.
 func sendPacket(packet *gatewayv1.Packet) {
@@ -423,4 +432,61 @@ func getStreamId() uint64 {
 	r := make([]byte, 8)
 	rand.Read(r)
 	return binary.BigEndian.Uint64(r)
+}
+
+////////////////////////////////////
+// Gateway Data Output
+////////////////////////////////////
+
+// An HTTP server to serve data output
+// conceptual placeholder to get mixed data out of the gateway in lieu of more protocol
+func httpServerStart() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		var id uint64 = 0
+
+		for {
+			// get a completed data stream id
+			msgOutStreamEndedMu.Lock()
+			for k, v := range msgOutStreamEnded {
+				// if the stream has ended
+				if v == true {
+					id = k
+				}
+				break
+			}
+			msgOutStreamEndedMu.Unlock()
+
+			if id != 0 {
+				break
+			}
+
+			// wait until there is a completed stream
+			time.Sleep(time.Duration(40) * time.Millisecond)
+		}
+
+		if id != 0 {
+			for {
+				// remove data from queue until empty
+				data, err := msgOut[id].Dequeue()
+				if err != nil {
+					break
+				}
+				// send data out the http conection
+				fmt.Fprint(w, string(data))
+			}
+			// mark stream so it's not reprocessed
+			msgOutStreamEndedMu.Lock()
+			msgOutStreamEnded[id] = false
+			msgOutStreamEndedMu.Unlock()
+			return
+		}
+
+		http.NotFound(w, r)
+	})
+
+	// Start the HTTP server
+	err := http.ListenAndServe("localhost:9900", nil) // TODO port as arg
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
 }
