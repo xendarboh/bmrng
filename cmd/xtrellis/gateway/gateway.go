@@ -3,6 +3,8 @@ package gateway
 import (
 	"bytes"
 	"container/list"
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -11,8 +13,6 @@ import (
 	"net"
 	"os"
 	"sort"
-	"strconv"
-	"strings"
 	"sync"
 
 	gatewayv1 "github.com/31333337/repo/pb/gen/proto/go/gateway/v1"
@@ -361,7 +361,7 @@ func proxyStart() {
 func proxyHandleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	streamId := getStreamId(conn)
+	streamId := getStreamId()
 	var packetCounter uint64 = 0
 
 	utils.DebugLog("[Gateway] Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
@@ -417,16 +417,10 @@ func proxyHandleConnection(conn net.Conn) {
 	}
 }
 
-// cheap hack to produce a unique id from a network connection
+// Get a unique id for a mix-net transmission stream
 // TODO?: use UUID module
-func getStreamId(conn net.Conn) uint64 {
-	id0 := strings.Trim(fmt.Sprintf("%x", conn), "&{}")
-
-	// parse numeric string as hexadecimal integer (base 16)
-	id, err := strconv.ParseInt(id0, 16, 64)
-	if err != nil {
-		panic("[Gateway] uuid conversion failed")
-	}
-
-	return uint64(id)
+func getStreamId() uint64 {
+	r := make([]byte, 8)
+	rand.Read(r)
+	return binary.BigEndian.Uint64(r)
 }
