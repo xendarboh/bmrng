@@ -262,8 +262,6 @@ func LaunchCoordinator(args Args) {
 		// run rounds for each layer to establish paths
 		//////////////////////////////////////////////////////
 		for i := 0; i < numLayers; i++ {
-			log.Printf("\n")
-			log.Printf("Round %v | PathEstablishment=true", i)
 			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 			if i == 0 {
 				exp.KeyGen = !args.LoadMessages
@@ -318,10 +316,8 @@ func LaunchCoordinator(args Args) {
 		//////////////////////////////////////////////////////
 		// continually run lightning rounds to transmit messages
 		//////////////////////////////////////////////////////
+		var stats = utils.NewTimeStats()
 		for i := numLayers; ; i++ {
-			log.Printf("\n")
-			log.Printf("Round %v | PathEstablishment=false", i)
-
 			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 
 			exp.Info.PathEstablishment = false
@@ -345,7 +341,14 @@ func LaunchCoordinator(args Args) {
 				return
 			}
 
-			log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
+			stats.RecordTime(float64(time.Since(exp.ExperimentStartTime)))
+
+			// print time stats
+			c := 10 // print cycle, so terminal not too busy
+			if i%c == 0 {
+				log.Printf("Lightning round %v : %s", i, stats.GetStatsString())
+			}
+
 			exp.RecordToFile(args.OutFile)
 
 			// sleep between rounds
