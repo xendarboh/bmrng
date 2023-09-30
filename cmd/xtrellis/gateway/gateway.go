@@ -125,14 +125,18 @@ func NewMessageQueue() *MessageQueue {
 // then made available to mix-clients for transmission each round
 var msgQueueIn = NewMessageQueue()
 
-// Outgoing queues for data leaving the mix-net
-// Data is stored uniquely for each packet stream as it leaves the mix-net
-var msgOut = make(map[uint64]*MessageQueue)
-var msgOutMu sync.Mutex
+// Outgoing queues, mapped by stream id, for data leaving the mix-net
+var streamOut = make(map[uint64]*MessageQueue)
+var streamOutMu sync.Mutex
 
-// Set to true for each packet stream when the stream's transmsission through the mix-net ends
-var msgOutStreamEnded = make(map[uint64]bool)
-var msgOutStreamEndedMu sync.Mutex
+// Track packet stream state by id as they leave the mix-net
+const (
+	STREAM_OUT_START = iota // stream is transmitting through mix-net
+	STREAM_OUT_END          // stream has exited mix-net completely
+)
+
+var streamOutState = make(map[uint64]int)
+var streamOutStateMu sync.Mutex
 
 // Enqueue data into the message queue
 func (q *MessageQueue) Enqueue(m []byte) {
@@ -284,21 +288,26 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 	sortPackets(uniquePackets)
 
 	// for unique sorted non-dummy packets, store data as gateway output messages for each stream
-	msgOutMu.Lock()
-	defer msgOutMu.Unlock()
+	streamOutMu.Lock()
+	defer streamOutMu.Unlock()
 	for _, p := range uniquePackets {
 		id := p.StreamId
 		switch p.Type {
 		case gatewayv1.PacketType_PACKET_TYPE_START:
-			msgOut[id] = NewMessageQueue()
+			streamOut[id] = NewMessageQueue()
+			streamOutStateMu.Lock()
+			streamOutState[id] = STREAM_OUT_START
+			streamOutStateMu.Unlock()
 			break
+
 		case gatewayv1.PacketType_PACKET_TYPE_DATA:
-			msgOut[id].Enqueue(p.Data)
+			streamOut[id].Enqueue(p.Data)
 			break
+
 		case gatewayv1.PacketType_PACKET_TYPE_END:
-			msgOutStreamEndedMu.Lock()
-			msgOutStreamEnded[id] = true
-			msgOutStreamEndedMu.Unlock()
+			streamOutStateMu.Lock()
+			streamOutState[id] = STREAM_OUT_END
+			streamOutStateMu.Unlock()
 			break
 		}
 	}
@@ -446,15 +455,14 @@ func httpServerStart() {
 
 		for {
 			// get a completed data stream id
-			msgOutStreamEndedMu.Lock()
-			for k, v := range msgOutStreamEnded {
-				// if the stream has ended
-				if v == true {
+			streamOutStateMu.Lock()
+			for k, v := range streamOutState {
+				if v == STREAM_OUT_END {
 					id = k
 				}
 				break
 			}
-			msgOutStreamEndedMu.Unlock()
+			streamOutStateMu.Unlock()
 
 			if id != 0 {
 				break
@@ -467,17 +475,17 @@ func httpServerStart() {
 		if id != 0 {
 			for {
 				// remove data from queue until empty
-				data, err := msgOut[id].Dequeue()
+				data, err := streamOut[id].Dequeue()
 				if err != nil {
 					break
 				}
 				// send data out the http conection
 				fmt.Fprint(w, string(data))
 			}
-			// mark stream so it's not reprocessed
-			msgOutStreamEndedMu.Lock()
-			msgOutStreamEnded[id] = false
-			msgOutStreamEndedMu.Unlock()
+			// update stream output state so it's not reprocessed
+			streamOutStateMu.Lock()
+			delete(streamOutState, id)
+			streamOutStateMu.Unlock()
 			return
 		}
 
