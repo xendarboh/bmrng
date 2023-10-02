@@ -32,33 +32,29 @@ import (
 var Enable bool = false
 
 // mix-net message size; initialization required
-// Total message size including 8*2 bytes for serialized meta
 var messageSize int64 = 0
 
 // packet protocol size; calculated and cached by GetMaxProtocolSize
 var protocolSize int64 = 0
 
-// proxy server address and port, receives incoming messages
-var proxyAddressIn string
-
-// proxy server address and port, transmits outgoing messages
-var proxyAddressOut string
-
-func Init(s int64, enable bool, addrIn string, addrOut string) {
-	messageSize = s
+// Gateway initialization; set configuration and start in/out proxies
+// Set msgSize to match the mix-net messageSize.
+// Explicitly enable the gateway.
+// addrIn: proxy server address and port for receiving incoming data
+// addrOut server address and port for serving outgoing data
+func Init(msgSize int64, enable bool, addrIn string, addrOut string) {
+	messageSize = msgSize
 	Enable = enable
-	proxyAddressIn = addrIn
-	proxyAddressOut = addrOut
 
 	if !enable {
 		return
 	}
 
 	// data in -> proxy -> gateway -> mix-net
-	go proxyStart()
+	go proxyStart(addrIn)
 
 	// mix-net -> gateway -> http server -> data out
-	go httpServerStart()
+	go httpServerStart(addrOut)
 }
 
 // Max gateway packet protocol size in bytes, not counting packet data
@@ -347,16 +343,16 @@ func sendPacket(packet *gatewayv1.Packet) {
 }
 
 // Start gateway proxy to listen for incoming messages
-func proxyStart() {
+func proxyStart(addrIn string) {
 	// Create a listener for incoming connections
-	listener, err := net.Listen("tcp", proxyAddressIn)
+	listener, err := net.Listen("tcp", addrIn)
 	if err != nil {
 		log.Printf("[Gateway] Error listening: %v\n", err)
 		return
 	}
 	defer listener.Close()
 
-	log.Printf("[Gateway] IN: Listening on %s...\n", proxyAddressIn)
+	log.Printf("[Gateway] IN: Listening on %s...\n", addrIn)
 
 	// Accept incoming connections
 	for {
@@ -443,7 +439,7 @@ func getStreamId() uint64 {
 
 // An HTTP server to serve data output
 // conceptual placeholder to get mixed data out of the gateway in lieu of more protocol
-func httpServerStart() {
+func httpServerStart(addrOut string) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var id uint64 = 0
 
@@ -487,8 +483,8 @@ func httpServerStart() {
 	})
 
 	// Start the HTTP server
-	log.Printf("[Gateway] OUT: Listening on %s...\n", proxyAddressOut)
-	err := http.ListenAndServe(proxyAddressOut, nil)
+	log.Printf("[Gateway] OUT: Listening on %s...\n", addrOut)
+	err := http.ListenAndServe(addrOut, nil)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
