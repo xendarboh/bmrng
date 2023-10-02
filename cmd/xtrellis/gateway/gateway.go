@@ -444,7 +444,7 @@ func httpServerStart(addrOut string) {
 		var id uint64 = 0
 
 		for {
-			// get a completed data stream id
+			// get a completed data stream id, if there is one
 			streamOutStateMu.Lock()
 			for k, v := range streamOutState {
 				if v == STREAM_OUT_END {
@@ -458,7 +458,21 @@ func httpServerStart(addrOut string) {
 				break
 			}
 
-			// wait until there is a completed stream
+			// if no completed data streams, get a transmitting one
+			streamOutStateMu.Lock()
+			for k, v := range streamOutState {
+				if v == STREAM_OUT_START {
+					id = k
+				}
+				break
+			}
+			streamOutStateMu.Unlock()
+
+			if id != 0 {
+				break
+			}
+
+			// wait until there is a stream
 			time.Sleep(time.Duration(40) * time.Millisecond)
 		}
 
@@ -467,15 +481,33 @@ func httpServerStart(addrOut string) {
 				// remove data from queue until empty
 				data, err := streamOut[id].Dequeue()
 				if err != nil {
-					break
+					streamOutStateMu.Lock()
+					state := streamOutState[id]
+					streamOutStateMu.Unlock()
+
+					if state == STREAM_OUT_END {
+						break
+					} else if state == STREAM_OUT_START {
+						// if stream has not finished transmitting, wait for more data to exit the mix-net
+						time.Sleep(time.Duration(10) * time.Millisecond)
+						continue
+					}
 				}
+
 				// send data out the http conection
 				fmt.Fprint(w, string(data))
 			}
-			// update stream output state so it's not reprocessed
+
+			// when all data for the stream has exited the gateway, remove stream queue and tracking
+
+			streamOutMu.Lock()
+			delete(streamOut, id)
+			streamOutMu.Unlock()
+
 			streamOutStateMu.Lock()
 			delete(streamOutState, id)
 			streamOutStateMu.Unlock()
+
 			return
 		}
 
