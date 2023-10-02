@@ -239,8 +239,6 @@ func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
 			Data:     nil,
 		}
 		message, err = packetPack(packet)
-	} else {
-		utils.DebugLog("⭐ data IN")
 	}
 
 	return message, err
@@ -281,7 +279,9 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 	streamOutMu.Lock()
 	defer streamOutMu.Unlock()
 	for _, p := range uniquePackets {
+		utils.DebugLog("[Gateway] data exiting mix-net [%d][%d] += '%s'", p.StreamId, p.Sequence, p.Data)
 		id := p.StreamId
+
 		switch p.Type {
 		case gatewayv1.PacketType_PACKET_TYPE_START:
 			streamOut[id] = NewMessageQueue()
@@ -295,6 +295,7 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 			break
 
 		case gatewayv1.PacketType_PACKET_TYPE_END:
+			utils.DebugLog("[Gateway] 🟥 END data stream transmission [%d]", p.StreamId)
 			streamOutStateMu.Lock()
 			streamOutState[id] = STREAM_OUT_END
 			streamOutStateMu.Unlock()
@@ -372,7 +373,7 @@ func proxyHandleConnection(conn net.Conn) {
 	streamId := getStreamId()
 	var packetCounter uint64 = 0
 
-	utils.DebugLog("[Gateway] Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
+	utils.DebugLog("[Gateway] IN: Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
 
 	// start a new transmission
 	packet := &gatewayv1.Packet{
@@ -401,11 +402,11 @@ func proxyHandleConnection(conn net.Conn) {
 
 			if err == io.EOF {
 				packetFinal.Type = gatewayv1.PacketType_PACKET_TYPE_END
-				utils.DebugLog("[Gateway] Finished receiving data stream")
+				utils.DebugLog("[Gateway] IN: Finished receiving data stream")
 
 			} else {
 				packetFinal.Type = gatewayv1.PacketType_PACKET_TYPE_ERROR
-				utils.DebugLog("[Gateway] Error receiving data stream: %s", err.Error())
+				utils.DebugLog("[Gateway] IN: Error receiving data stream: %s", err.Error())
 			}
 
 			sendPacket(packetFinal)
@@ -473,8 +474,11 @@ func httpServerStart(addrOut string) {
 			}
 
 			// wait until there is a stream
+			utils.DebugLog("[Gateway] OUT: waiting for stream...")
 			time.Sleep(time.Duration(40) * time.Millisecond)
 		}
+
+		utils.DebugLog("[Gateway] OUT: streamId=%d, number of streams=%d", id, len(streamOutState))
 
 		if id != 0 {
 			for {
@@ -489,6 +493,7 @@ func httpServerStart(addrOut string) {
 						break
 					} else if state == STREAM_OUT_START {
 						// if stream has not finished transmitting, wait for more data to exit the mix-net
+						utils.DebugLog("[Gateway] OUT: waiting for stream data to exit mix-net...")
 						time.Sleep(time.Duration(10) * time.Millisecond)
 						continue
 					}
