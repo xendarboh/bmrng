@@ -40,9 +40,9 @@ type Args struct {
 	////////////////////////////////////
 	// coordinator
 	////////////////////////////////////
-	GatewayAddress string `default:"localhost:9000" help:"gateway proxy address for receiving messages to mix"`
+	GatewayAddrIn  string `default:"localhost:9000" help:"gateway proxy address for incoming mix-net messages"`
+	GatewayAddrOut string `default:"localhost:9900" help:"gateway proxy address for outgoing mix-net messages"`
 	GatewayEnable  bool   `default:"False" help:"enable client message gateway"`
-	GatewayMsgDir  string `default:"/tmp/xtrellis-io" help:"local filesystem directory for mixed messages"`
 	RoundInterval  int    `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
 	RunExperiment  bool   `default:"False" help:"run coordinator experiment"`
 
@@ -127,7 +127,7 @@ func LaunchCoordinator(args Args) {
 		log.Fatal("Error: MessageSize too small for Gateway packet protocol")
 	}
 
-	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddress, args.GatewayMsgDir)
+	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddrIn, args.GatewayAddrOut)
 
 	////////////////////////////////////////////////////////////////////////
 	// setup network

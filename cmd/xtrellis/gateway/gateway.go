@@ -12,7 +12,6 @@ import (
 	"math"
 	"net"
 	"net/http"
-	"os"
 	"sort"
 	"sync"
 	"time"
@@ -24,9 +23,10 @@ import (
 )
 
 // A gateway:
-// - receives messages to transmit through the mix-net for a particular client
+// - receives incoming data as streams to transmit through the mix-net
 // - enables mix-net clients to retrieve messages to transmit
 // - receives final messages from the mix-net
+// - serves outoing data streams
 
 // Enable gateway? Used externally to conditionally use the gateway
 var Enable bool = false
@@ -38,26 +38,20 @@ var messageSize int64 = 0
 // packet protocol size; calculated and cached by GetMaxProtocolSize
 var protocolSize int64 = 0
 
-// filesystem directory to save final messages sent through the mix-net
-var messageDirectory string
+// proxy server address and port, receives incoming messages
+var proxyAddressIn string
 
-// proxy server address and port, listens for messages
-var proxyAddress string
+// proxy server address and port, transmits outgoing messages
+var proxyAddressOut string
 
-func Init(s int64, enable bool, addr string, dir string) {
+func Init(s int64, enable bool, addrIn string, addrOut string) {
 	messageSize = s
 	Enable = enable
-	proxyAddress = addr
-	messageDirectory = dir
+	proxyAddressIn = addrIn
+	proxyAddressOut = addrOut
 
 	if !enable {
 		return
-	}
-
-	// create the message directory if not exists
-	err := os.MkdirAll(messageDirectory, os.ModePerm)
-	if err != nil {
-		panic(fmt.Sprintf("[Gateway] Error creating message directory: %v\n", err))
 	}
 
 	// data in -> proxy -> gateway -> mix-net
@@ -355,14 +349,14 @@ func sendPacket(packet *gatewayv1.Packet) {
 // Start gateway proxy to listen for incoming messages
 func proxyStart() {
 	// Create a listener for incoming connections
-	listener, err := net.Listen("tcp", proxyAddress)
+	listener, err := net.Listen("tcp", proxyAddressIn)
 	if err != nil {
 		log.Printf("[Gateway] Error listening: %v\n", err)
 		return
 	}
 	defer listener.Close()
 
-	log.Printf("[Gateway] Listening on %s...\n", proxyAddress)
+	log.Printf("[Gateway] IN: Listening on %s...\n", proxyAddressIn)
 
 	// Accept incoming connections
 	for {
@@ -493,7 +487,8 @@ func httpServerStart() {
 	})
 
 	// Start the HTTP server
-	err := http.ListenAndServe("localhost:9900", nil) // TODO port as arg
+	log.Printf("[Gateway] OUT: Listening on %s...\n", proxyAddressOut)
+	err := http.ListenAndServe(proxyAddressOut, nil)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
