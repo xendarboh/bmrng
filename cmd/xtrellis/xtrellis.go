@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -10,18 +9,18 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/simonlangowski/lightning1/client"
+	"github.com/simonlangowski/lightning1/cmd/xtrellis/gateway"
+	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
 	"github.com/simonlangowski/lightning1/config"
 	"github.com/simonlangowski/lightning1/coordinator"
 	"github.com/simonlangowski/lightning1/errors"
 	"github.com/simonlangowski/lightning1/network"
+	"github.com/simonlangowski/lightning1/server"
 )
 
 type Args struct {
-	// mode of execution; for single exe
-	Mode string `arg:"positional,required" help:"coordinator, server, or client"`
-
-	// ¿run coordinator experiment?
-	RunExperiment bool `default:"False" help:"run coodinator experiment"`
+	Mode  string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
+	Debug bool   `default:"False" help:"enable debug log output"`
 
 	////////////////////////////////////
 	// files
@@ -34,13 +33,16 @@ type Args struct {
 	OutFile     string `default:"res.json"`
 
 	////////////////////////////////////
-	// client
+	// client & server
 	////////////////////////////////////
 	Addr string `default:"localhost:8000"`
 
 	////////////////////////////////////
 	// coordinator
 	////////////////////////////////////
+	EnableGateway bool `default:"False" help:"enable client message gateway"`
+	RoundInterval int  `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
+	RunExperiment bool `default:"False" help:"run coordinator experiment"`
 
 	F           float64 `default:"0"`
 	RunType     int     `default:"1"`
@@ -144,6 +146,11 @@ func LaunchCoordinator(args Args) {
 	}
 
 	////////////////////////////////////////////////////////////////////////
+	// setup gateway
+	////////////////////////////////////////////////////////////////////////
+	gateway.Init(int64(args.MessageSize), args.EnableGateway)
+
+	////////////////////////////////////////////////////////////////////////
 	// run experiment
 	////////////////////////////////////////////////////////////////////////
 	if args.RunExperiment {
@@ -160,6 +167,7 @@ func LaunchCoordinator(args Args) {
 		l := 0
 		if !args.SkipPathGen {
 			for i := 0; i < numLayers; i++ {
+				log.Printf("\n")
 				log.Printf("Round %v", i)
 				exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 				if i == 0 {
@@ -203,6 +211,7 @@ func LaunchCoordinator(args Args) {
 
 		numLightning := 5
 		for i := l; i < l+numLightning; i++ {
+			log.Printf("\n")
 			log.Printf("Round %v", i)
 			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 			exp.Info.PathEstablishment = false
@@ -228,59 +237,149 @@ func LaunchCoordinator(args Args) {
 	}
 
 	////////////////////////////////////////////////////////////////////////
-	// wait for CTRL-C to exit, leave servers running
+	// run mix-net
 	////////////////////////////////////////////////////////////////////////
-	if args.RunType == 1 {
+	if !args.RunExperiment {
+		log.Printf("Running mix-net...")
+
+		numLayers := args.NumLayers
+		numServers := args.NumServers
+		numMessages := args.NumUsers
+
+		c := coordinator.NewCoordinator(net)
+		if args.LoadMessages {
+			c.LoadKeys(args.KeyFile)
+			c.LoadMessages(args.MessageFile)
+		}
+
+		//////////////////////////////////////////////////////
+		// run rounds for each layer to establish paths
+		//////////////////////////////////////////////////////
+		for i := 0; i < numLayers; i++ {
+			log.Printf("\n")
+			log.Printf("Round %v | PathEstablishment=true", i)
+			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
+			if i == 0 {
+				exp.KeyGen = !args.LoadMessages
+				exp.LoadKeys = args.LoadMessages
+			}
+			exp.Info.PathEstablishment = true
+			exp.Info.LastLayer = (i == numLayers-1)
+			exp.Info.Check = !args.NoCheck
+			exp.Info.Interval = int64(args.Interval)
+
+			if args.BinSize > 0 {
+				exp.Info.BinSize = int64(args.BinSize)
+			} else if i == 0 {
+				log.Printf("Using bin size %d", exp.Info.BinSize)
+			}
+
+			if args.LimitSize > 0 {
+				exp.Info.BoomerangLimit = int64(args.LimitSize)
+			} else {
+				exp.Info.BoomerangLimit = int64(numLayers)
+			}
+
+			exp.Info.ReceiptLayer = 0
+			if i-int(exp.Info.BoomerangLimit) > 0 {
+				exp.Info.ReceiptLayer = int64(i) - exp.Info.BoomerangLimit
+			}
+
+			exp.Info.NextLayer = int64(i)
+
+			err := c.DoAction(exp)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+			log.Printf("Path round %v took %v", i, time.Since(exp.ExperimentStartTime))
+			exp.RecordToFile(args.OutFile)
+		}
+
+		////////////////////////////////////////////////////////////////////////
+		// wait for CTRL-C to exit, leave servers running
 		// https://stackoverflow.com/a/18158859
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		////////////////////////////////////////////////////////////////////////
+		ctrl := make(chan os.Signal)
+		signal.Notify(ctrl, os.Interrupt, syscall.SIGTERM)
 		go func() {
-			<-c
-			// cleanup()
-			fmt.Println("Exiting")
+			<-ctrl
+			log.Println("Exiting")
 			os.Exit(1)
 		}()
+		log.Println("Coordinator running... CTRL-C to exit.")
 
-		fmt.Println("Coordinator running... CTRL-C to exit.")
-		for {
-			time.Sleep(10 * time.Second)
+		//////////////////////////////////////////////////////
+		// continually run lightning rounds to transmit messages
+		//////////////////////////////////////////////////////
+		for i := numLayers; ; i++ {
+			log.Printf("\n")
+			log.Printf("Round %v | PathEstablishment=false", i)
+
+			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
+
+			exp.Info.PathEstablishment = false
+			exp.Info.MessageSize = int64(args.MessageSize)
+			exp.Info.Check = !args.NoCheck
+
+			if args.BinSize > 0 {
+				exp.Info.BinSize = int64(args.BinSize)
+			}
+
+			if args.SkipPathGen && (i == 0) {
+				exp.Info.SkipPathGen = true
+				exp.KeyGen = true
+			}
+
+			exp.Info.Interval = int64(args.Interval)
+
+			err := c.DoAction(exp)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
+			exp.RecordToFile(args.OutFile)
+
+			// sleep between rounds
+			time.Sleep(time.Duration(args.RoundInterval) * time.Millisecond)
 		}
 	}
 }
 
-func LaunchServer() {
-	log.Printf("TODO: server")
+// from cmd/server/server.go
+func LaunchServer(args Args) {
+	arg.MustParse(&args)
 
-	// // read configuration files
-	// serversFile := os.Args[1]
-	// groupsFile := os.Args[2]
-	// addr := os.Args[len(os.Args)-1]
+	serversFile := args.ServerFile
+	groupsFile := args.GroupFile
+	addr := args.Addr
+	errors.Addr = addr
 
-	// errors.Addr = addr
-	// servers, err := config.UnmarshalServersFromFile(serversFile)
-	// if err != nil {
-	// 	log.Fatalf("Could not read servers file %s", serversFile)
-	// }
+	log.Printf("Launching server with address %s", addr)
 
-	// groups, err := config.UnmarshalGroupsFromFile(groupsFile)
-	// if err != nil {
-	// 	log.Fatalf("Could not read group file %s", groupsFile)
-	// }
+	servers, err := config.UnmarshalServersFromFile(serversFile)
+	if err != nil {
+		log.Fatalf("Could not read servers file %s", serversFile)
+	}
 
-	// fmt.Println("addr", addr)
+	groups, err := config.UnmarshalGroupsFromFile(groupsFile)
+	if err != nil {
+		log.Fatalf("Could not read group file %s", groupsFile)
+	}
 
-	// // will start in blocked state
-	// h := server.NewHandler()
-	// server := server.NewServer(&config.Servers{Servers: servers}, &config.Groups{Groups: groups}, h, addr)
+	// will start in blocked state
+	h := server.NewHandler()
+	server := server.NewServer(&config.Servers{Servers: servers}, &config.Groups{Groups: groups}, h, addr)
 
-	// server.TcpConnections.LaunchAccepts()
-	// network.RunServer(h, server, servers, addr)
-	// config.Flush()
+	server.TcpConnections.LaunchAccepts()
+	network.RunServer(h, server, servers, addr)
+	config.Flush()
 }
 
 // from cmd/client/client.go
 func LaunchClient(args Args) {
-	log.Printf("Launching client...")
 	arg.MustParse(&args)
 
 	serversFile := args.ServerFile
@@ -288,6 +387,8 @@ func LaunchClient(args Args) {
 	clientsFile := args.ClientFile
 	addr := args.Addr
 	errors.Addr = addr
+
+	log.Printf("Launching client with address %s", addr)
 
 	servers, err := config.UnmarshalServersFromFile(serversFile)
 	if err != nil {
@@ -305,10 +406,14 @@ func LaunchClient(args Args) {
 	}
 
 	clientRunner := client.NewClientRunner(servers, groups)
-	err = clientRunner.Connect()
-	if err != nil {
-		log.Fatalf("Could not make clients %v", err)
-	}
+
+	// This fails @ network/rpc_call.go callee.HandleSignedMessageStream
+	/*
+		err = clientRunner.Connect()
+		if err != nil {
+			log.Fatalf("Could not make clients %v", err)
+		}
+	*/
 
 	network.RunServer(nil, clientRunner, clients, addr)
 }
@@ -316,6 +421,8 @@ func LaunchClient(args Args) {
 func main() {
 	var args Args
 	p := arg.MustParse(&args)
+
+	utils.SetDebugLogEnabled(args.Debug)
 
 	switch args.Mode {
 	case "coordinator":
@@ -325,7 +432,7 @@ func main() {
 		LaunchClient(args)
 
 	case "server":
-		LaunchServer()
+		LaunchServer(args)
 
 	default:
 		p.WriteHelp(os.Stdout)
