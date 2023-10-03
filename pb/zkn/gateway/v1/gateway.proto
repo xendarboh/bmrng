@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+enum PacketType {
+  PACKET_TYPE_UNKNOWN = 0;
+
+  // new stream transmission
+  // can also be deduced from sequence=0
+  PACKET_TYPE_START = 1;
+
+  // stream data
+  PACKET_TYPE_DATA = 2;
+
+  // stream transmission is complete
+  PACKET_TYPE_END = 3;
+
+  // stream transmission failure
+  PACKET_TYPE_ERROR = 4;
+
+  // mix-net message filler
+  PACKET_TYPE_DUMMY = 5;
+}
+
+// Gateway data streams are transmitted within mix-net messages as packets.
+// Packets track sequence to facilitate reassembly upon exit of the mix-net.
+// The mix-net message transporting the packet has a static size, so use
+// fixed and/or max size of protocol elements to calculate available data bytes.
+message Packet {
+  // https://protobuf.dev/programming-guides/encoding/#bools-and-enums
+  // Enums are encoded as if they were int32, which is variable size.
+  PacketType type = 1;
+
+  // unique identifier for the data stream
+  fixed64 stream_id = 2;
+
+  // the order of the packet within the stream
+  fixed64 sequence = 3;
+
+  // data length
+  fixed32 length = 4;
+
+  // contents
+  bytes data = 5;
+}

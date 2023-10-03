@@ -40,9 +40,11 @@ type Args struct {
 	////////////////////////////////////
 	// coordinator
 	////////////////////////////////////
-	EnableGateway bool `default:"False" help:"enable client message gateway"`
-	RoundInterval int  `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
-	RunExperiment bool `default:"False" help:"run coordinator experiment"`
+	GatewayAddrIn  string `default:"localhost:9000" help:"gateway proxy address for incoming mix-net messages"`
+	GatewayAddrOut string `default:"localhost:9900" help:"gateway proxy address for outgoing mix-net messages"`
+	GatewayEnable  bool   `default:"False" help:"enable client message gateway"`
+	RoundInterval  int    `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
+	RunExperiment  bool   `default:"False" help:"run coordinator experiment"`
 
 	F           float64 `default:"0"`
 	RunType     int     `default:"1"`
@@ -119,6 +121,15 @@ func LaunchCoordinator(args Args) {
 	log.Printf("%+v", args)
 
 	////////////////////////////////////////////////////////////////////////
+	// setup gateway and start proxy if enabled
+	////////////////////////////////////////////////////////////////////////
+	if args.MessageSize <= int(gateway.GetMaxProtocolSize()) {
+		log.Fatal("Error: MessageSize too small for Gateway packet protocol")
+	}
+
+	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddrIn, args.GatewayAddrOut)
+
+	////////////////////////////////////////////////////////////////////////
 	// setup network
 	////////////////////////////////////////////////////////////////////////
 	var net *coordinator.CoordinatorNetwork
@@ -144,11 +155,6 @@ func LaunchCoordinator(args Args) {
 		net = coordinator.NewLocalNetwork(serverConfigs, groupConfigs, clientConfigs)
 		defer net.KillAll()
 	}
-
-	////////////////////////////////////////////////////////////////////////
-	// setup gateway
-	////////////////////////////////////////////////////////////////////////
-	gateway.Init(int64(args.MessageSize), args.EnableGateway)
 
 	////////////////////////////////////////////////////////////////////////
 	// run experiment
@@ -256,8 +262,6 @@ func LaunchCoordinator(args Args) {
 		// run rounds for each layer to establish paths
 		//////////////////////////////////////////////////////
 		for i := 0; i < numLayers; i++ {
-			log.Printf("\n")
-			log.Printf("Round %v | PathEstablishment=true", i)
 			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 			if i == 0 {
 				exp.KeyGen = !args.LoadMessages
@@ -312,10 +316,8 @@ func LaunchCoordinator(args Args) {
 		//////////////////////////////////////////////////////
 		// continually run lightning rounds to transmit messages
 		//////////////////////////////////////////////////////
+		var stats = utils.NewTimeStats()
 		for i := numLayers; ; i++ {
-			log.Printf("\n")
-			log.Printf("Round %v | PathEstablishment=false", i)
-
 			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 
 			exp.Info.PathEstablishment = false
@@ -339,7 +341,14 @@ func LaunchCoordinator(args Args) {
 				return
 			}
 
-			log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
+			stats.RecordTime(float64(time.Since(exp.ExperimentStartTime)))
+
+			// print time stats
+			c := 10 // print cycle, so terminal not too busy
+			if i%c == 0 {
+				log.Printf("Lightning round %v : %s", i, stats.GetStatsString())
+			}
+
 			exp.RecordToFile(args.OutFile)
 
 			// sleep between rounds
