@@ -15,6 +15,7 @@ RUN apt update \
     git \
     libgmp-dev \
     libssl-dev \
+    netcat \
     sudo \
     unzip \
     wget \
