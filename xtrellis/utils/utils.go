@@ -8,9 +8,14 @@ import (
 )
 
 var debugLogEnabled = false
+var debugLogCallerEnabled = false
 
 func SetDebugLogEnabled(enabled bool) {
 	debugLogEnabled = enabled
+}
+
+func SetDebugLogCallerEnabled(enabled bool) {
+	debugLogCallerEnabled = enabled
 }
 
 func DebugLog(format string, args ...interface{}) {
@@ -18,17 +23,21 @@ func DebugLog(format string, args ...interface{}) {
 		return
 	}
 
-	// get the calling function's name, filename, and line number
-	pc, filename, line, _ := runtime.Caller(1)
-	funcname := runtime.FuncForPC(pc).Name()
+	caller := ""
+	if debugLogCallerEnabled {
+		// get the calling function's name, filename, and line number
+		pc, filename, line, _ := runtime.Caller(1)
+		funcname := runtime.FuncForPC(pc).Name()
 
-	// remove project root to shorten file path
-	re := regexp.MustCompile("(.*)/trellis/")
-	path := re.ReplaceAllString(filename, "")
+		// remove project root to shorten file path
+		re := regexp.MustCompile("(.*)/trellis/")
+		path := re.ReplaceAllString(filename, "")
 
-	s1 := fmt.Sprintf("🔷 %s:%s:%d", path, funcname, line)
-	s2 := fmt.Sprintf(format, args...)
-	log.Printf("%s %s", s1, s2)
+		caller = fmt.Sprintf("%s:%s:%d ", path, funcname, line)
+	}
+
+	s := fmt.Sprintf(format, args...)
+	log.Printf("🔷 %s%s", caller, s)
 }
 
 // Time statistics tracker

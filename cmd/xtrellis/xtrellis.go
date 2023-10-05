@@ -19,8 +19,9 @@ import (
 )
 
 type Args struct {
-	Mode  string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
-	Debug bool   `default:"False" help:"enable debug log output"`
+	Mode        string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
+	Debug       bool   `default:"False" help:"enable debug log output"`
+	DebugCaller bool   `default:"False" help:"with debug enabled, print calling function's info"`
 
 	////////////////////////////////////
 	// files
@@ -432,6 +433,7 @@ func main() {
 	p := arg.MustParse(&args)
 
 	utils.SetDebugLogEnabled(args.Debug)
+	utils.SetDebugLogCallerEnabled(args.DebugCaller)
 
 	switch args.Mode {
 	case "coordinator":
