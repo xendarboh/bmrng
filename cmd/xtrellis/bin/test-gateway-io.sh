@@ -2,8 +2,8 @@
 
 # Test transmission of data streams through mix-net by means of gateway proxy i/o
 
-# Example coordinated local mix-net invocation before running this:
-# ./xtrellis coordinator --messagesize 120 --numlayers 5 --numusers 3 --roundinterval 1 --gatewayenable --debug
+# First start a coordinated local mix-net with gateway enabled.
+# Run the script, or set options manually: ./bin/run-coordinator-gateway.sh
 
 set -e
 
