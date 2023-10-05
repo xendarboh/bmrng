@@ -30,6 +30,8 @@ wget -O data.out -q http://${GATEWAY_HOST}:${GATEWAY_PORT_OUT} || echo "not foun
 # compare data input to output
 if diff -q data.in data.out &>/dev/null; then
   echo "Success!"
+  exit 0
 else
   echo "Fail!"
+  exit 1
 fi
