@@ -278,7 +278,7 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 	streamOutMu.Lock()
 	defer streamOutMu.Unlock()
 	for _, p := range uniquePackets {
-		utils.DebugLog("[Gateway] data exiting mix-net [%d][%d] += '%s'", p.StreamId, p.Sequence, p.Data)
+		utils.DebugLog("[Gateway] data exiting mix-net [%d][%d]", p.StreamId, p.Sequence)
 		id := p.StreamId
 
 		switch p.Type {
