@@ -18,7 +18,12 @@ services:
       - 9900
     working_dir: /opt/trellis/cmd/xtrellis
     command: /bin/bash -cx "
-      ./bin/run-coordinator-gateway.sh &
+      ./xtrellis \
+        coordinator \
+        --gatewayenable \
+        --roundinterval 1 \
+        --debug \
+        &
       sleep 10s ;
       ./bin/test-gateway-io.sh 102400
       "

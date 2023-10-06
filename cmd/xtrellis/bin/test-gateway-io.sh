@@ -1,9 +1,7 @@
 #!/bin/bash
 
 # Test transmission of data streams through mix-net by means of gateway proxy i/o
-
-# First start a coordinated local mix-net with gateway enabled.
-# Run the script, or set options manually: ./bin/run-coordinator-gateway.sh
+# First start a coordinated local mix-net with gateway enabled. See README.
 
 set -e
 
