@@ -224,48 +224,45 @@ func writeMessageBuffer(buffer *bytes.Buffer, space int64, data []byte) error {
 	return nil
 }
 
-// Pack a packet by filling with space to meet the target message size
-func packetPack(packet *gatewayv1.Packet) ([]byte, error) {
-	space, err := getPacketSpace(packet)
-	if err != nil {
-		return nil, err
-	}
-
-	if space < 0 {
-		return nil, errors.New("packet too large for message size")
-	}
-
-	if space > 0 {
-		// fill the space used by the data,
-		// the packet length enables decoding
-		buffer := new(bytes.Buffer)
-		buffer.Write(packet.Data)
-		buffer.Write(make([]byte, space))
-		packet.Data = buffer.Bytes()
-	}
-
-	packed, err := proto.Marshal(packet)
-	if err != nil {
-		return nil, err
-	}
-
-	return packed, nil
+// Pack a packet header and packet data into a mix-net message of the target message size.
+// Use prepareMessageBuffer and writeMessageBuffer separately to determine exactly
+// how much space is available for message data.
+func packetPack(header *gatewayv1.Packet, data []byte) ([]byte, error) {
+	buffer, space, err := prepareMessageBuffer(header)
+	err = writeMessageBuffer(buffer, space, data)
+	return buffer.Bytes(), err
 }
 
-func packetUnpack(packedPacket []byte) (*gatewayv1.Packet, error) {
-	packet := &gatewayv1.Packet{}
-	err := proto.Unmarshal(packedPacket, packet)
-	if err != nil {
-		return nil, err
+// Unpack a mix-net message into a packet header and packet data
+func packetUnpack(message []byte) (*gatewayv1.Packet, []byte, error) {
+	buffer := bytes.NewReader(message)
+
+	// deserialize uint16 for headerLength
+	var headerLength uint16
+	if err := binary.Read(buffer, binary.LittleEndian, &headerLength); err != nil {
+		return nil, nil, fmt.Errorf("Error deserializing header length: %w", err)
 	}
 
-	// deserialize padded packet data based on packet length
-	buffer := bytes.NewReader(packet.Data)
-	data := make([]byte, packet.Length)
-	buffer.Read(data)
-	packet.Data = data
+	// deserialize packet header from headerLength
+	headerBytes := make([]byte, headerLength)
+	buffer.Read(headerBytes)
+	header := &gatewayv1.Packet{}
+	err := proto.Unmarshal(headerBytes, header)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Error deserializing packet header: %w", err)
+	}
 
-	return packet, nil
+	// deserialize uint32 for dataLength
+	var dataLength uint32
+	if err := binary.Read(buffer, binary.LittleEndian, &dataLength); err != nil {
+		return nil, nil, fmt.Errorf("Error deserializing data length: %w", err)
+	}
+
+	// deserialize data from dataLength
+	data := make([]byte, dataLength)
+	buffer.Read(data)
+
+	return header, data, nil
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -281,14 +278,20 @@ func GetMessageForClient(clientId int64) ([]byte, error) {
 
 	// If message queue is empty, use a dummy message
 	if err != nil {
-		packet := &gatewayv1.Packet{
+		header := &gatewayv1.Packet{
 			Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
 			StreamId: uint64(clientId), // use client id for uniqueness within round
 			Sequence: 0,
 			Length:   0,
 			Data:     nil,
 		}
-		message, err = packetPack(packet)
+		// message, err = packetPack(header)
+		buffer, space, err := prepareMessageBuffer(header)
+		if err == nil {
+			if err = writeMessageBuffer(buffer, space, nil); err == nil {
+				message = buffer.Bytes()
+			}
+		}
 	}
 
 	return message, err
@@ -302,10 +305,11 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 	uniqueMessages := make(map[uint64]uint64)
 	var uniquePackets []*gatewayv1.Packet
 	for _, m := range messages {
-		packet, err := packetUnpack(m)
+		packet, data, err := packetUnpack(m)
 		if err != nil {
 			panic(err)
 		}
+		packet.Data = data // TODO: hacky since packet.Data is deprecating
 
 		// For data packets: `StreamId` is expected to be universally unique to the input stream
 		// For dummy packets: `StreamId` is only unique within a single round
@@ -382,7 +386,14 @@ func sortPackets(packets []*gatewayv1.Packet) {
 // Send a message through the mix-net.
 func sendPacket(packet *gatewayv1.Packet) {
 	// pack the packet into a static-sized message
-	message, err := packetPack(packet)
+
+	// TODO: fix temp hack old->new
+	data := bytes.Clone(packet.Data)
+	packet.Data = nil
+	packet.Length = 0
+
+	message, err := packetPack(packet, data)
+
 	if err != nil {
 		// TODO: handle error less fatally
 		panic(fmt.Sprintf("[Gateway] >>> Error creating message from packet: %v\n", err))

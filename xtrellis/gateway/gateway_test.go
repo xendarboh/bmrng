@@ -47,8 +47,7 @@ func tPacketPack(t *testing.T, success bool, typ gatewayv1.PacketType, id uint64
 		Data:     data,
 	}
 
-	buffer, space, err := prepareMessageBuffer(header)
-	err = writeMessageBuffer(buffer, space, data)
+	message, err := packetPack(header, data)
 
 	if !success {
 		if err == nil {
@@ -63,7 +62,7 @@ func tPacketPack(t *testing.T, success bool, typ gatewayv1.PacketType, id uint64
 		t.FailNow()
 	}
 
-	if buffer.Len() != int(messageSize) {
+	if len(message) != int(messageSize) {
 		t.Log(err)
 		t.Log("message not equal to message size")
 		t.FailNow()
@@ -96,49 +95,41 @@ func TestPacketUnpack(t *testing.T) {
 	streamid := uint64(100)
 	sequence := uint64(100)
 	data := []byte("1234")
-	length := uint32(len(data))
 
-	p1 := &gatewayv1.Packet{
+	h1 := &gatewayv1.Packet{
 		Type:     ptype,
 		StreamId: streamid,
 		Sequence: sequence,
-		Length:   length,
-		Data:     data,
 	}
 
-	packed, err := packetPack(p1)
+	packed, err := packetPack(h1, data)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	p2, err := packetUnpack(packed)
+	h2, data2, err := packetUnpack(packed)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	if ptype != p2.Type {
+	if ptype != h2.Type {
 		t.Log("packet Type not equal")
 		t.FailNow()
 	}
 
-	if streamid != p2.StreamId {
+	if streamid != h2.StreamId {
 		t.Log("packet StreamId not equal")
 		t.FailNow()
 	}
 
-	if sequence != p2.Sequence {
+	if sequence != h2.Sequence {
 		t.Log("packet Sequence not equal")
 		t.FailNow()
 	}
 
-	if length != p2.Length {
-		t.Log("packet Length not equal")
-		t.FailNow()
-	}
-
-	if !bytes.Equal(data, p2.Data) {
+	if !bytes.Equal(data, data2) {
 		t.Log("packet Data not equal")
 		t.FailNow()
 	}
