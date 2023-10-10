@@ -173,6 +173,57 @@ func getPacketSpace(packet *gatewayv1.Packet) (int64, error) {
 	return space, nil
 }
 
+// Given a packet header, prepare a mix-net message buffer for adding data
+// Returns a buffer and number of bytes remaining for writing data
+func prepareMessageBuffer(header *gatewayv1.Packet) (*bytes.Buffer, int64, error) {
+	packedHeader, err := proto.Marshal(header)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	buffer := new(bytes.Buffer)
+
+	// serialize packed header length in the message
+	headerLength := uint16(len(packedHeader))
+	if err := binary.Write(buffer, binary.LittleEndian, headerLength); err != nil {
+		return nil, 0, fmt.Errorf("Error serializing header length: %w", err)
+	}
+
+	// serialize header in the message
+	buffer.Write(packedHeader)
+
+	// sizeof uint32 in bytes for recording data length
+	var dataLengthSize int64 = 4
+
+	// space remaining for data
+	space := messageSize - int64(len(buffer.Bytes())) - dataLengthSize
+
+	return buffer, space, nil
+}
+
+func writeMessageBuffer(buffer *bytes.Buffer, space int64, data []byte) error {
+	dataLength := uint32(len(data))
+
+	// serialize data length in the message
+	binary.Write(buffer, binary.LittleEndian, dataLength)
+
+	// serialize data in the message
+	buffer.Write(data)
+
+	pad := space - int64(dataLength)
+
+	if pad < 0 {
+		return errors.New("data too large for message size")
+	}
+
+	if pad > 0 {
+		// pad the remaining space to match message size
+		buffer.Write(make([]byte, pad))
+	}
+
+	return nil
+}
+
 // Pack a packet by filling with space to meet the target message size
 func packetPack(packet *gatewayv1.Packet) ([]byte, error) {
 	space, err := getPacketSpace(packet)

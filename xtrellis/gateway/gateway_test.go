@@ -36,18 +36,19 @@ func TestMessageQueue(t *testing.T) {
 	}
 }
 
-func tPacketPack(t *testing.T, success bool, id uint64, sequence uint64, data []byte) {
+func tPacketPack(t *testing.T, success bool, typ gatewayv1.PacketType, id uint64, sequence uint64, data []byte) {
 	dataLength := uint32(len(data))
 
-	packet := &gatewayv1.Packet{
-		Type:     gatewayv1.PacketType_PACKET_TYPE_DATA,
+	header := &gatewayv1.Packet{
+		Type:     typ,
 		StreamId: id,
 		Sequence: sequence,
 		Length:   dataLength,
 		Data:     data,
 	}
 
-	packed, err := packetPack(packet)
+	buffer, space, err := prepareMessageBuffer(header)
+	err = writeMessageBuffer(buffer, space, data)
 
 	if !success {
 		if err == nil {
@@ -62,9 +63,9 @@ func tPacketPack(t *testing.T, success bool, id uint64, sequence uint64, data []
 		t.FailNow()
 	}
 
-	if len(packed) != int(messageSize) {
+	if buffer.Len() != int(messageSize) {
 		t.Log(err)
-		t.Log("packed packet not equal to message size")
+		t.Log("message not equal to message size")
 		t.FailNow()
 	}
 }
@@ -72,14 +73,20 @@ func tPacketPack(t *testing.T, success bool, id uint64, sequence uint64, data []
 func TestPacketPack(t *testing.T) {
 	messageSize = 64
 
+	var td = gatewayv1.PacketType_PACKET_TYPE_DATA
+
 	// should pass
-	tPacketPack(t, true, 0, 0, nil)
-	tPacketPack(t, true, 1, 1, []byte("1"))
-	tPacketPack(t, true, 1000000000, 1000000000, []byte("1234567890"))
+	tPacketPack(t, true, td, 0, 0, nil)
+	tPacketPack(t, true, td, 1, 1, []byte("1"))
+	tPacketPack(t, true, td, 1000000000, 1000000000, []byte("1234567890"))
 
 	// should fail
 	messageSize = 32
-	tPacketPack(t, false, 1000000000, 1000000000, []byte("1234567890"))
+	tPacketPack(t, false, td, 1000000000, 1000000000, []byte("1234567890"))
+
+	// should pass
+	messageSize = 100000
+	tPacketPack(t, true, td, 1000000000, 1000000000, []byte("1234567890"))
 }
 
 func TestPacketUnpack(t *testing.T) {
