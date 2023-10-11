@@ -14,6 +14,10 @@ sleep 10s
 
 ./bin/test-gateway-io.sh 102400
 
-kill -s SIGTERM ${xtrellis_pid}
+# kill spawned mix-net servers
+pkill -P ${xtrellis_pid}
+
+# kill the coordinator
+kill ${xtrellis_pid}
 
 exit 0
