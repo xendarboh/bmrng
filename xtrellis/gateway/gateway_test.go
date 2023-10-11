@@ -37,7 +37,7 @@ func TestMessageQueue(t *testing.T) {
 }
 
 func tPacketPack(t *testing.T, success bool, typ gatewayv1.PacketType, id uint64, sequence uint64, data []byte) {
-	header := &gatewayv1.Packet{
+	header := &gatewayv1.PacketHeader{
 		Type:     typ,
 		StreamId: id,
 		Sequence: sequence,
@@ -92,7 +92,7 @@ func TestPacketUnpack(t *testing.T) {
 	sequence := uint64(100)
 	data := []byte("1234")
 
-	h1 := &gatewayv1.Packet{
+	h1 := &gatewayv1.PacketHeader{
 		Type:     ptype,
 		StreamId: streamid,
 		Sequence: sequence,
@@ -132,7 +132,7 @@ func TestPacketUnpack(t *testing.T) {
 }
 
 func TestPacketsSort(t *testing.T) {
-	var packets = []*gatewayv1.Packet{
+	var headers = []*gatewayv1.PacketHeader{
 		{
 			StreamId: 20,
 			Sequence: 0,
@@ -151,7 +151,7 @@ func TestPacketsSort(t *testing.T) {
 		},
 	}
 
-	var sorted = []*gatewayv1.Packet{
+	var sorted = []*gatewayv1.PacketHeader{
 		{
 			StreamId: 10,
 			Sequence: 1,
@@ -170,10 +170,10 @@ func TestPacketsSort(t *testing.T) {
 		},
 	}
 
-	sortPackets(packets)
+	sortPacketHeaders(headers)
 
-	if !reflect.DeepEqual(packets, sorted) {
-		t.Log("packets not sorted")
+	if !reflect.DeepEqual(headers, sorted) {
+		t.Log("packet headers not sorted")
 		t.FailNow()
 	}
 }

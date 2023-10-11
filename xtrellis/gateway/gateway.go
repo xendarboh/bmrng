@@ -65,22 +65,22 @@ func GetMaxProtocolSize() int64 {
 		return protocolSize
 	}
 
-	// Create a packet with max data sizes, marshal it, then measure the bytes consumption
+	// Create a packet header with max data sizes, marshal it, then measure the bytes consumption
 	// For message wire type sizes, refer to https://protobuf.dev/programming-guides/encoding/#bools-and-enums
 
-	packet := &gatewayv1.Packet{
+	header := &gatewayv1.PacketHeader{
 		Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
 		StreamId: math.MaxUint64,
 		Sequence: math.MaxUint64,
 	}
 
-	packed, err := proto.Marshal(packet)
+	packedHeader, err := proto.Marshal(header)
 	if err != nil {
 		panic(err)
 	}
 
 	staticSize := int64(2 + 4) // packet header length (uint16) + data length (uint32)
-	variableSize := int64(len(packed))
+	variableSize := int64(len(packedHeader))
 	protocolSize = staticSize + variableSize
 
 	return protocolSize
@@ -157,7 +157,7 @@ func (q *MessageQueue) Dequeue() ([]byte, error) {
 
 // Given a packet header, prepare a mix-net message buffer for adding data
 // Returns a buffer and number of bytes remaining for writing data
-func prepareMessageBuffer(header *gatewayv1.Packet) (*bytes.Buffer, int64, error) {
+func prepareMessageBuffer(header *gatewayv1.PacketHeader) (*bytes.Buffer, int64, error) {
 	packedHeader, err := proto.Marshal(header)
 	if err != nil {
 		return nil, 0, err
@@ -209,14 +209,14 @@ func writeMessageBuffer(buffer *bytes.Buffer, space int64, data []byte) error {
 // Pack a packet header and packet data into a mix-net message of the target message size.
 // Use prepareMessageBuffer and writeMessageBuffer separately to determine exactly
 // how much space is available for message data.
-func packetPack(header *gatewayv1.Packet, data []byte) ([]byte, error) {
+func packetPack(header *gatewayv1.PacketHeader, data []byte) ([]byte, error) {
 	buffer, space, err := prepareMessageBuffer(header)
 	err = writeMessageBuffer(buffer, space, data)
 	return buffer.Bytes(), err
 }
 
 // Unpack a mix-net message into a packet header and packet data
-func packetUnpack(message []byte) (*gatewayv1.Packet, []byte, error) {
+func packetUnpack(message []byte) (*gatewayv1.PacketHeader, []byte, error) {
 	buffer := bytes.NewReader(message)
 
 	// deserialize uint16 for headerLength
@@ -228,7 +228,7 @@ func packetUnpack(message []byte) (*gatewayv1.Packet, []byte, error) {
 	// deserialize packet header from headerLength
 	headerBytes := make([]byte, headerLength)
 	buffer.Read(headerBytes)
-	header := &gatewayv1.Packet{}
+	header := &gatewayv1.PacketHeader{}
 	err := proto.Unmarshal(headerBytes, header)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Error deserializing packet header: %w", err)
@@ -260,7 +260,7 @@ func GetMessageForClient(clientId int64) ([]byte, error) {
 
 	// If message queue is empty, use a dummy message
 	if err != nil {
-		header := &gatewayv1.Packet{
+		header := &gatewayv1.PacketHeader{
 			Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
 			StreamId: uint64(clientId), // use client id for uniqueness within round
 			Sequence: 0,
@@ -282,16 +282,16 @@ func GetMessageForClient(clientId int64) ([]byte, error) {
 // Note: There are duplicates (why?), so sort unique.
 func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 
-	// get an identifier for a packet that is unique among all packets of a round
-	getPacketUID := func(p *gatewayv1.Packet) uint64 {
+	// get a packet identifier that is unique among all packets of a round
+	getPacketUID := func(h *gatewayv1.PacketHeader) uint64 {
 		// For data packets: `StreamId` is expected to be universally unique to the input stream
 		// For dummy packets: `StreamId` is only unique within a single round
-		return p.StreamId + p.Sequence
+		return h.StreamId + h.Sequence
 	}
 
 	// count unique messages and extract unique non-dummy packets
 	uniqueMessages := make(map[uint64][]byte) // record message data by uid for access post-sort
-	var uniquePackets []*gatewayv1.Packet
+	var uniquePackets []*gatewayv1.PacketHeader
 	for _, m := range messages {
 		packet, data, err := packetUnpack(m)
 		if err != nil {
@@ -312,7 +312,7 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 		}
 	}
 
-	sortPackets(uniquePackets)
+	sortPacketHeaders(uniquePackets)
 
 	// for unique sorted non-dummy packets, store data as gateway output messages for each stream
 	streamOutMu.Lock()
@@ -348,10 +348,10 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 	return len(uniqueMessages) == numExpected
 }
 
-// Sort packets by StreamId, Sequence
-func sortPackets(packets []*gatewayv1.Packet) {
-	sort.Slice(packets, func(i, j int) bool {
-		pi, pj := packets[i], packets[j]
+// Sort packet headers by StreamId, Sequence
+func sortPacketHeaders(headers []*gatewayv1.PacketHeader) {
+	sort.Slice(headers, func(i, j int) bool {
+		pi, pj := headers[i], headers[j]
 		switch {
 		case pi.StreamId != pj.StreamId:
 			return pi.StreamId < pj.StreamId
@@ -402,7 +402,7 @@ func proxyHandleConnection(conn net.Conn) {
 	utils.DebugLog("[Gateway] >>> Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
 
 	// Send a message through the mix-net
-	sendPacket := func(h *gatewayv1.Packet, dataOrMessage []byte, packed bool) {
+	sendMessage := func(h *gatewayv1.PacketHeader, dataOrMessage []byte, packed bool) {
 		var err error
 		message := dataOrMessage
 
@@ -426,16 +426,16 @@ func proxyHandleConnection(conn net.Conn) {
 	}
 
 	// start a new transmission
-	header := &gatewayv1.Packet{
+	header := &gatewayv1.PacketHeader{
 		Type:     gatewayv1.PacketType_PACKET_TYPE_START,
 		StreamId: streamId,
 		Sequence: 0,
 	}
-	sendPacket(header, nil, false)
+	sendMessage(header, nil, false)
 
 	for {
 		// send packetized data
-		header := &gatewayv1.Packet{
+		header := &gatewayv1.PacketHeader{
 			Type:     gatewayv1.PacketType_PACKET_TYPE_DATA,
 			StreamId: streamId,
 			Sequence: packetCounter,
@@ -459,12 +459,12 @@ func proxyHandleConnection(conn net.Conn) {
 				utils.DebugLog("[Gateway] >>> Error receiving data stream id=%d: %s", streamId, err.Error())
 			}
 
-			sendPacket(header, nil, false)
+			sendMessage(header, nil, false)
 			return
 		}
 
 		err = writeMessageBuffer(messageBuffer, space, data[:n])
-		sendPacket(header, messageBuffer.Bytes(), true)
+		sendMessage(header, messageBuffer.Bytes(), true)
 	}
 }
 
