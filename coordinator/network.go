@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/simonlangowski/lightning1/client"
-	"github.com/simonlangowski/lightning1/config"
-	coord "github.com/simonlangowski/lightning1/coordinator/messages"
-	"github.com/simonlangowski/lightning1/network"
-	"github.com/simonlangowski/lightning1/network/messages"
-	"github.com/simonlangowski/lightning1/server"
+	"github.com/31333337/trellis/client"
+	"github.com/31333337/trellis/config"
+	coord "github.com/31333337/trellis/coordinator/messages"
+	"github.com/31333337/trellis/network"
+	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/trellis/server"
 )
 
 const (

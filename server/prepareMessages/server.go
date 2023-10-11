@@ -3,12 +3,12 @@ package prepareMessages
 import (
 	"sync"
 
-	"github.com/simonlangowski/lightning1/crypto"
-	"github.com/simonlangowski/lightning1/errors"
-	"github.com/simonlangowski/lightning1/network/messages"
-	"github.com/simonlangowski/lightning1/server/common"
+	"github.com/31333337/trellis/crypto"
+	"github.com/31333337/trellis/errors"
+	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/trellis/server/common"
 
-	"github.com/simonlangowski/lightning1/crypto/token"
+	"github.com/31333337/trellis/crypto/token"
 )
 
 type MessagePreparer struct {

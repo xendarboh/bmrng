@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 
-	apiv1 "github.com/31333337/repo/pb/gen/proto/go/api/v1"
-	"github.com/31333337/repo/pb/gen/proto/go/api/v1/apiv1connect"
+	apiv1 "github.com/31333337/trellis/pb/gen/proto/go/api/v1"
+	"github.com/31333337/trellis/pb/gen/proto/go/api/v1/apiv1connect"
 	"github.com/bufbuild/connect-go"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"

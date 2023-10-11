@@ -5,11 +5,11 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/crypto/ec"
-	"github.com/simonlangowski/lightning1/network"
-	"github.com/simonlangowski/lightning1/network/messages"
-	"github.com/simonlangowski/lightning1/network/synchronization"
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/crypto/ec"
+	"github.com/31333337/trellis/network"
+	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/trellis/network/synchronization"
 )
 
 func TestSigningKeyShare(t *testing.T) {

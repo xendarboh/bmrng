@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 
-	"github.com/simonlangowski/lightning1/crypto"
+	"github.com/31333337/trellis/crypto"
 )
 
 /*

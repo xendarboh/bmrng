@@ -1,14 +1,16 @@
 package main
 
 import (
-        "fmt"
+	"fmt"
 	"log"
-//	"os"
-        "flag"
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/errors"
-	"github.com/simonlangowski/lightning1/network"
-	"github.com/simonlangowski/lightning1/server"
+
+	//	"os"
+	"flag"
+
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/errors"
+	"github.com/31333337/trellis/network"
+	"github.com/31333337/trellis/server"
 )
 
 func main() {
@@ -31,7 +33,7 @@ func main() {
 	serversFile := flag.Arg(0)
 	groupsFile := flag.Arg(1)
 	addr := flag.Arg(2)
-errors.Addr = addr
+	errors.Addr = addr
 	servers, err := config.UnmarshalServersFromFile(serversFile)
 	if err != nil {
 		log.Fatalf("Could not read servers file %s", serversFile)

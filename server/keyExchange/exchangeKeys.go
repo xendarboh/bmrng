@@ -5,11 +5,11 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/crypto/ec"
-	"github.com/simonlangowski/lightning1/network"
-	"github.com/simonlangowski/lightning1/network/messages"
-	"github.com/simonlangowski/lightning1/network/synchronization"
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/crypto/ec"
+	"github.com/31333337/trellis/network"
+	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/trellis/network/synchronization"
 )
 
 type KeyExchange struct {
@@ -135,29 +135,29 @@ func (k *KeyExchange) OnThreshold(step int) (int, int) {
 }
 
 /*
-func (k *KeyExchange) RetrieveKeys(c *network.Caller) error {
-	k.synchronizer.Sync(synchronization.Completed)
-	i, err := MakeInformationRequest(c)
-	if err != nil {
-		return err
+	func (k *KeyExchange) RetrieveKeys(c *network.Caller) error {
+		k.synchronizer.Sync(synchronization.Completed)
+		i, err := MakeInformationRequest(c)
+		if err != nil {
+			return err
+		}
+		k.publicSigningKey = &i.SigningKeys[k.layerNumber]
+		return nil
 	}
-	k.publicSigningKey = &i.SigningKeys[k.layerNumber]
-	return nil
-}
 
-func MakeInformationRequest(c *network.Caller) (*InformationRequest, error) {
-	// choose any random member of the master group to request the keys from
-	masterGroupServers := c.Groups[config.MASTER_GROUP].Servers
-	server := masterGroupServers[mrand.Intn(len(masterGroupServers))]
-	m := &messages.SignedMessage{
-		MessageType: messages.SignedMessage_InformationRequest,
+	func MakeInformationRequest(c *network.Caller) (*InformationRequest, error) {
+		// choose any random member of the master group to request the keys from
+		masterGroupServers := c.Groups[config.MASTER_GROUP].Servers
+		server := masterGroupServers[mrand.Intn(len(masterGroupServers))]
+		m := &messages.SignedMessage{
+			MessageType: messages.SignedMessage_InformationRequest,
+		}
+		result, err := c.SendSignedMessage(int(server), m)
+		if err != nil {
+			return nil, err
+		}
+		return NewInformationRequest(result.Data), nil
 	}
-	result, err := c.SendSignedMessage(int(server), m)
-	if err != nil {
-		return nil, err
-	}
-	return NewInformationRequest(result.Data), nil
-}
 */
 func (k *KeyExchange) GetPublicKeys() *ec.Point {
 	k.synchronizer.Sync(synchronization.Completed)

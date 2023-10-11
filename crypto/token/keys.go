@@ -1,9 +1,9 @@
 package token
 
 import (
-	"github.com/simonlangowski/lightning1/crypto/pairing"
-	"github.com/simonlangowski/lightning1/crypto/pairing/kyber_wrap"
-	"github.com/simonlangowski/lightning1/crypto/pairing/mcl"
+	"github.com/31333337/trellis/crypto/pairing"
+	"github.com/31333337/trellis/crypto/pairing/kyber_wrap"
+	"github.com/31333337/trellis/crypto/pairing/mcl"
 )
 
 type TokenPublicKey struct {

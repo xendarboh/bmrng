@@ -3,7 +3,7 @@ package synchronization
 import (
 	"sync"
 
-	"github.com/simonlangowski/lightning1/errors"
+	"github.com/31333337/trellis/errors"
 )
 
 // Implement syncrhonized broadcast

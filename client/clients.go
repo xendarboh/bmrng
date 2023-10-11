@@ -11,14 +11,14 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/simonlangowski/lightning1/cmd/xtrellis/gateway"
-	"github.com/simonlangowski/lightning1/config"
-	coord "github.com/simonlangowski/lightning1/coordinator/messages"
-	"github.com/simonlangowski/lightning1/crypto/token"
-	"github.com/simonlangowski/lightning1/errors"
-	"github.com/simonlangowski/lightning1/network"
-	"github.com/simonlangowski/lightning1/server/common"
-	"github.com/simonlangowski/lightning1/server/prepareMessages"
+	"github.com/31333337/trellis/config"
+	coord "github.com/31333337/trellis/coordinator/messages"
+	"github.com/31333337/trellis/crypto/token"
+	"github.com/31333337/trellis/errors"
+	"github.com/31333337/trellis/network"
+	"github.com/31333337/trellis/server/common"
+	"github.com/31333337/trellis/server/prepareMessages"
+	"github.com/31333337/trellis/xtrellis/gateway"
 )
 
 // Simulates multiple clients
@@ -129,7 +129,7 @@ func (c *ClientRunner) ClientStart(_ context.Context, i *coord.RoundInfo) (*coor
 
 					// gateway simulation
 					if gateway.Enable {
-						m, _ = gateway.GetMessageForClient(i, id)
+						m, _ = gateway.GetMessageForClient(id)
 					}
 
 					done <- cli.SendLightningMessage(c.Caller, cli.PathKeys, m)

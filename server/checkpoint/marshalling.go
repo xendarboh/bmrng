@@ -1,9 +1,9 @@
 package checkpoint
 
 import (
-	"github.com/simonlangowski/lightning1/crypto"
-	"github.com/simonlangowski/lightning1/crypto/token"
-	"github.com/simonlangowski/lightning1/errors"
+	"github.com/31333337/trellis/crypto"
+	"github.com/31333337/trellis/crypto/token"
+	"github.com/31333337/trellis/errors"
 )
 
 var TOKEN_MESSAGE_LENGTH = token.TOKEN_SIZE + crypto.VERIFICATION_KEY_SIZE

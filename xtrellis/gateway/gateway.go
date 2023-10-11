@@ -16,9 +16,8 @@ import (
 	"sync"
 	"time"
 
-	gatewayv1 "github.com/31333337/repo/pb/gen/proto/go/gateway/v1"
-	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
-	coord "github.com/simonlangowski/lightning1/coordinator/messages"
+	gatewayv1 "github.com/31333337/trellis/pb/gen/proto/go/gateway/v1"
+	"github.com/31333337/trellis/xtrellis/utils"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -227,7 +226,7 @@ func packetUnpack(packedPacket []byte) (*gatewayv1.Packet, error) {
 
 // Get the next message for a client to send through the mix-net
 // If message queue is empty, use a dummy message
-func GetMessageForClient(i *coord.RoundInfo, clientId int64) ([]byte, error) {
+func GetMessageForClient(clientId int64) ([]byte, error) {
 	message, err := msgQueueIn.Dequeue()
 
 	if err != nil {

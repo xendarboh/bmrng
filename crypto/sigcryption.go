@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 
-	"github.com/simonlangowski/lightning1/errors"
+	"github.com/31333337/trellis/errors"
 )
 
 // derived from box.SecretSeal and box.SecretOpen
@@ -15,6 +15,7 @@ const NONCE_SIZE = 24
 const SignedMetadataSize = 12
 const SymmetricKeySize = 16
 const Overhead = SIGNATURE_SIZE
+const HASH_SIZE = 32
 
 // ID of receiving party must be signed
 func Nonce(round, layer, destId int) [NONCE_SIZE]byte {

@@ -3,12 +3,14 @@ package main
 import (
 	"flag"
 	"log"
-//	"os"
-        "fmt"
-	"github.com/simonlangowski/lightning1/client"
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/errors"
-	"github.com/simonlangowski/lightning1/network"
+
+	//	"os"
+	"fmt"
+
+	"github.com/31333337/trellis/client"
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/errors"
+	"github.com/31333337/trellis/network"
 )
 
 func main() {

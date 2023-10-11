@@ -7,15 +7,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alexflint/go-arg"
-	"github.com/simonlangowski/lightning1/client"
-	"github.com/simonlangowski/lightning1/cmd/xtrellis/gateway"
-	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/coordinator"
-	"github.com/simonlangowski/lightning1/errors"
-	"github.com/simonlangowski/lightning1/network"
-	"github.com/simonlangowski/lightning1/server"
+	"github.com/31333337/trellis/client"
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/coordinator"
+	"github.com/31333337/trellis/errors"
+	"github.com/31333337/trellis/network"
+	"github.com/31333337/trellis/server"
+	"github.com/31333337/trellis/xtrellis/gateway"
+	"github.com/31333337/trellis/xtrellis/utils"
+	arg "github.com/alexflint/go-arg"
 )
 
 type Args struct {

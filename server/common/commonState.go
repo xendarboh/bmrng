@@ -4,10 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/crypto"
-	"github.com/simonlangowski/lightning1/crypto/token"
-	"github.com/simonlangowski/lightning1/network/messages"
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/crypto"
+	"github.com/31333337/trellis/crypto/token"
+	"github.com/31333337/trellis/network/messages"
 )
 
 type CommonState struct {

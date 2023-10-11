@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/coordinator"
+	"github.com/31333337/trellis/server/prepareMessages"
 	"github.com/alexflint/go-arg"
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/coordinator"
-	"github.com/simonlangowski/lightning1/server/prepareMessages"
 )
 
 // run the coordinator, who starts and measures the experiment

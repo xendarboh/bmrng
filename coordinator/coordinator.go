@@ -11,15 +11,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/simonlangowski/lightning1/cmd/xtrellis/gateway"
-	"github.com/simonlangowski/lightning1/cmd/xtrellis/utils"
-	"github.com/simonlangowski/lightning1/config"
-	coord "github.com/simonlangowski/lightning1/coordinator/messages"
-	"github.com/simonlangowski/lightning1/crypto"
-	"github.com/simonlangowski/lightning1/crypto/pairing/mcl"
-	"github.com/simonlangowski/lightning1/crypto/token"
-	"github.com/simonlangowski/lightning1/errors"
-	"github.com/simonlangowski/lightning1/server/prepareMessages"
+	"github.com/31333337/trellis/config"
+	coord "github.com/31333337/trellis/coordinator/messages"
+	"github.com/31333337/trellis/crypto"
+	"github.com/31333337/trellis/crypto/pairing/mcl"
+	"github.com/31333337/trellis/crypto/token"
+	"github.com/31333337/trellis/errors"
+	"github.com/31333337/trellis/server/prepareMessages"
+	"github.com/31333337/trellis/xtrellis/gateway"
+	"github.com/31333337/trellis/xtrellis/utils"
 )
 
 // The coordinator simulates the glocal clock time when the round begins, the time when receipts should have been received by, etc.

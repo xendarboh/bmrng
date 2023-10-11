@@ -1,13 +1,13 @@
 package processMessages
 
 import (
-	"github.com/simonlangowski/lightning1/crypto"
-	"github.com/simonlangowski/lightning1/crypto/token"
-	"github.com/simonlangowski/lightning1/errors"
-	"github.com/simonlangowski/lightning1/network/buffers"
-	"github.com/simonlangowski/lightning1/network/messages"
-	"github.com/simonlangowski/lightning1/server/checkpoint"
-	"github.com/simonlangowski/lightning1/server/common"
+	"github.com/31333337/trellis/crypto"
+	"github.com/31333337/trellis/crypto/token"
+	"github.com/31333337/trellis/errors"
+	"github.com/31333337/trellis/network/buffers"
+	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/trellis/server/checkpoint"
+	"github.com/31333337/trellis/server/common"
 )
 
 type PathEstablishmentParser struct {

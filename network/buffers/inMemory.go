@@ -3,8 +3,8 @@ package buffers
 import (
 	"sync"
 
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/errors"
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/errors"
 )
 
 // If I had a read/write mmap I could just map anonymous for in memory and map file otherwise

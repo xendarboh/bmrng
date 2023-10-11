@@ -1,8 +1,8 @@
 package token
 
 import (
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/crypto/pairing/mcl"
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/crypto/pairing/mcl"
 )
 
 // a fixed secret, public key pair to generate messages quickly

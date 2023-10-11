@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/simonlangowski/lightning1/config"
-	"github.com/simonlangowski/lightning1/network/messages"
+	"github.com/31333337/trellis/config"
+	"github.com/31333337/trellis/network/messages"
 )
 
 // don't spend too long lol

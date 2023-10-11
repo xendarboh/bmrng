@@ -18,8 +18,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/simonlangowski/lightning1/crypto"
-	"github.com/simonlangowski/lightning1/crypto/ec"
+	"github.com/31333337/trellis/crypto"
+	"github.com/31333337/trellis/crypto/ec"
 )
 
 var (

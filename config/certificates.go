@@ -12,7 +12,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/simonlangowski/lightning1/crypto"
+	"github.com/31333337/trellis/crypto"
 )
 
 /*
