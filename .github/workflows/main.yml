@@ -28,7 +28,7 @@ jobs:
       run: docker build -t trellis-test .
 
     - name: Run Go Tests
-      run: docker run trellis-test go test ./...
+      run: docker run trellis-test go test ./xtrellis/...
 
     - name: Docker Compose Test
       run: |
