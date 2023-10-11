@@ -7,6 +7,8 @@ cmd/coordinator/groups.json
 cmd/coordinator/clients.json
 cmd/coordinator/keys.json
 cmd/coordinator/messages.json
+cmd/coordinator/res.json
+cmd/coordinator/res.json.csv
 cmd/certificates/*.pem
 cmd/certificates/*.key
 coordinator/*.pprof

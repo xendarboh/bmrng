@@ -1,2 +1,5 @@
 *.json
+!groups.json
+!servers.json
+
 xtrellis

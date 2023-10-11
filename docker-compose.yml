@@ -5,19 +5,16 @@ services:
     profiles: ["build"]
     image: ${IMG_REPO}/${IMG_NAME}:${IMG_TAG}
     init: true
-    restart: unless-stopped
     build:
       context: ./
 
-  server-0:
-    profiles: ["run"]
+  xtrellis-test-gateway:
+    profiles: ["test-gateway"]
     extends:
       service: base
-    container_name: server-0
+    container_name: xtrellis-test-gateway
     expose:
-      - 8000
-    command: >
-      ./cmd/server/server
-        ./cmd/coordinator/servers.json
-        ./cmd/coordinator/groups.json
-        localhost:8000
+      - 9000
+      - 9900
+    working_dir: /opt/trellis/cmd/xtrellis
+    command: ./bin/test-gateway-ci.sh

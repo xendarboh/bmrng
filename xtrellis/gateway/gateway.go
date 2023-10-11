@@ -225,10 +225,10 @@ func packetUnpack(packedPacket []byte) (*gatewayv1.Packet, error) {
 ////////////////////////////////////////////////////////////////////////
 
 // Get the next message for a client to send through the mix-net
-// If message queue is empty, use a dummy message
 func GetMessageForClient(clientId int64) ([]byte, error) {
 	message, err := msgQueueIn.Dequeue()
 
+	// If message queue is empty, use a dummy message
 	if err != nil {
 		packet := &gatewayv1.Packet{
 			Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
@@ -278,11 +278,11 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 	streamOutMu.Lock()
 	defer streamOutMu.Unlock()
 	for _, p := range uniquePackets {
-		utils.DebugLog("[Gateway] data exiting mix-net [%d][%d] += '%s'", p.StreamId, p.Sequence, p.Data)
 		id := p.StreamId
 
 		switch p.Type {
 		case gatewayv1.PacketType_PACKET_TYPE_START:
+			utils.DebugLog("[Gateway] <<< [mix-net] 🟢 START stream [%d]", id)
 			streamOut[id] = NewMessageQueue()
 			streamOutStateMu.Lock()
 			streamOutState[id] = STREAM_OUT_START
@@ -290,11 +290,12 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 			break
 
 		case gatewayv1.PacketType_PACKET_TYPE_DATA:
+			utils.DebugLog("[Gateway] <<< [mix-net] 🔶 DATA stream [%d][%d]", id, p.Sequence)
 			streamOut[id].Enqueue(p.Data)
 			break
 
 		case gatewayv1.PacketType_PACKET_TYPE_END:
-			utils.DebugLog("[Gateway] 🟥 END data stream transmission [%d]", p.StreamId)
+			utils.DebugLog("[Gateway] <<< [mix-net] 🟥 END stream [%d]", id)
 			streamOutStateMu.Lock()
 			streamOutState[id] = STREAM_OUT_END
 			streamOutStateMu.Unlock()
@@ -333,10 +334,10 @@ func sendPacket(packet *gatewayv1.Packet) {
 	message, err := packetPack(packet)
 	if err != nil {
 		// TODO: handle error less fatally
-		panic(fmt.Sprintf("[Gateway] Error creating message from packet: %v\n", err))
+		panic(fmt.Sprintf("[Gateway] >>> Error creating message from packet: %v\n", err))
 	}
 
-	utils.DebugLog("[Gateway] Send packet!\n🔶 %v", packet)
+	utils.DebugLog("[Gateway] >>> [mix-net] Send stream [%d][%d]", packet.StreamId, packet.Sequence)
 
 	// stage message for a mix-net client to pick it up
 	msgQueueIn.Enqueue(message)
@@ -347,18 +348,18 @@ func proxyStart(addrIn string) {
 	// Create a listener for incoming connections
 	listener, err := net.Listen("tcp", addrIn)
 	if err != nil {
-		log.Printf("[Gateway] Error listening: %v\n", err)
+		log.Printf("[Gateway] >>> Error listening: %v\n", err)
 		return
 	}
 	defer listener.Close()
 
-	log.Printf("[Gateway] IN: Listening on %s...\n", addrIn)
+	log.Printf("[Gateway] >>> Listening on %s...\n", addrIn)
 
 	// Accept incoming connections
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("[Gateway] Error accepting connection: %v\n", err)
+			log.Printf("[Gateway] >>> Error accepting connection: %v\n", err)
 			continue
 		}
 
@@ -372,7 +373,7 @@ func proxyHandleConnection(conn net.Conn) {
 	streamId := getStreamId()
 	var packetCounter uint64 = 0
 
-	utils.DebugLog("[Gateway] IN: Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
+	utils.DebugLog("[Gateway] >>> Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
 
 	// start a new transmission
 	packet := &gatewayv1.Packet{
@@ -401,11 +402,11 @@ func proxyHandleConnection(conn net.Conn) {
 
 			if err == io.EOF {
 				packetFinal.Type = gatewayv1.PacketType_PACKET_TYPE_END
-				utils.DebugLog("[Gateway] IN: Finished receiving data stream")
+				utils.DebugLog("[Gateway] >>> Finished receiving data stream id=%d", streamId)
 
 			} else {
 				packetFinal.Type = gatewayv1.PacketType_PACKET_TYPE_ERROR
-				utils.DebugLog("[Gateway] IN: Error receiving data stream: %s", err.Error())
+				utils.DebugLog("[Gateway] >>> Error receiving data stream id=%d: %s", streamId, err.Error())
 			}
 
 			sendPacket(packetFinal)
@@ -473,11 +474,11 @@ func httpServerStart(addrOut string) {
 			}
 
 			// wait until there is a stream
-			utils.DebugLog("[Gateway] OUT: waiting for stream...")
+			utils.DebugLog("[Gateway] <<< Waiting for stream...")
 			time.Sleep(time.Duration(40) * time.Millisecond)
 		}
 
-		utils.DebugLog("[Gateway] OUT: streamId=%d, number of streams=%d", id, len(streamOutState))
+		utils.DebugLog("[Gateway] <<< stream leaving gateway id=%d, number of streams=%d", id, len(streamOutState))
 
 		if id != 0 {
 			for {
@@ -492,7 +493,7 @@ func httpServerStart(addrOut string) {
 						break
 					} else if state == STREAM_OUT_START {
 						// if stream has not finished transmitting, wait for more data to exit the mix-net
-						utils.DebugLog("[Gateway] OUT: waiting for stream data to exit mix-net...")
+						utils.DebugLog("[Gateway] <<< Waiting for stream data to exit mix-net...")
 						time.Sleep(time.Duration(10) * time.Millisecond)
 						continue
 					}
@@ -519,9 +520,9 @@ func httpServerStart(addrOut string) {
 	})
 
 	// Start the HTTP server
-	log.Printf("[Gateway] OUT: Listening on %s...\n", addrOut)
+	log.Printf("[Gateway] <<< Listening on %s...\n", addrOut)
 	err := http.ListenAndServe(addrOut, nil)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("[Gateway] <<< Error:", err)
 	}
 }

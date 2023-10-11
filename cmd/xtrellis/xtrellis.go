@@ -19,8 +19,9 @@ import (
 )
 
 type Args struct {
-	Mode  string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
-	Debug bool   `default:"False" help:"enable debug log output"`
+	Mode        string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
+	Debug       bool   `default:"False" help:"enable debug log output"`
+	DebugCaller bool   `default:"False" help:"with debug enabled, print calling function's info"`
 
 	////////////////////////////////////
 	// files
@@ -50,7 +51,7 @@ type Args struct {
 	RunType     int     `default:"1"`
 	NumUsers    int     `default:"100" help:"also NumMessages"`
 	NumServers  int     `default:"10"`
-	MessageSize int     `default:"1024"`
+	MessageSize int     `default:"128"` // TODO: default 1024 after dynamic gateway packet header
 
 	NumGroups int `default:"3"`
 	GroupSize int `default:"3"`
@@ -432,6 +433,7 @@ func main() {
 	p := arg.MustParse(&args)
 
 	utils.SetDebugLogEnabled(args.Debug)
+	utils.SetDebugLogCallerEnabled(args.DebugCaller)
 
 	switch args.Mode {
 	case "coordinator":

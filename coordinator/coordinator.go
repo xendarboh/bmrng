@@ -19,7 +19,6 @@ import (
 	"github.com/31333337/trellis/errors"
 	"github.com/31333337/trellis/server/prepareMessages"
 	"github.com/31333337/trellis/xtrellis/gateway"
-	"github.com/31333337/trellis/xtrellis/utils"
 )
 
 // The coordinator simulates the glocal clock time when the round begins, the time when receipts should have been received by, etc.
@@ -147,7 +146,6 @@ func (c *Coordinator) DoAction(exp *Experiment) error {
 				return err
 			}
 		}
-		utils.DebugLog("exp.Info. PathEstablishment=%t; ReceiptLayer=%d; Round=%d", exp.Info.PathEstablishment, exp.Info.ReceiptLayer, exp.Info.Round)
 		if exp.Info.PathEstablishment {
 			if exp.Info.ReceiptLayer == 0 && exp.Info.Round != 0 {
 				err := c.Net.CheckClientReceipt(exp.Info, exp.NumMessages)
@@ -185,9 +183,7 @@ func (c *Coordinator) DoAction(exp *Experiment) error {
 			}
 
 			if gateway.Enable {
-				// give final messages to gateway and check them
 				exp.Passed = gateway.CheckFinalMessages(messages, exp.NumMessages)
-				utils.DebugLog("exp.Passed = gateway.CheckFinalMessages = %t", exp.Passed)
 			} else {
 				exp.Passed = c.Check(messages, exp.NumMessages)
 			}

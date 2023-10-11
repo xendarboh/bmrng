@@ -1,3 +1,89 @@
+# 0KN
+
+## xtrellis
+
+A single executable to launch mix-net components including coordinator, servers, clients, and gateway.
+
+## Prerequisites
+
+Install the following:
+
+- latest stable version of [go](https://go.dev/doc/install) (`>= 1.21.1`)
+- [Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)
+- [Buf](https://buf.build/docs/installation)
+- [Trellis dependencies](/README.md#dependencies)
+  - except for "_go files_", which we'll build after `pb/` (see below)
+
+Utilities used by test scripts:
+
+- netcat
+- wget
+
+## Build
+
+Generate code from protocol buffers:
+
+```sh
+cd pb && go mod download && go mod verify
+buf generate
+cd ..
+```
+
+Build trellis `server`, `client`, `coordinator`:
+
+```sh
+go mod download && go mod verify
+cd cmd/server && go install && go build
+cd ../client && go install && go build
+cd ../coordinator && go install && go build
+```
+
+Build `xtrellis`:
+
+```sh
+cd ../xtrellis
+go install && go build
+```
+
+## Test Gateway
+
+From the xtrellis directory `cmd/xtrellis/`,
+
+Run a coordinated local mix-net with gateway enabled, for example:
+
+```sh
+./xtrellis coordinator --gatewayenable --debug
+```
+
+Then, in a separate terminal:
+
+Send `100KB` random data through the mix-net and compare data in to data out:
+
+```sh
+./bin/test-gateway-io.sh 102400
+```
+
+Pipe generic data through the mix-net:
+
+```sh
+cat in.png | ./bin/test-gateway-pipe.sh > out.png
+```
+
+### With Docker Compose
+
+From project root:
+
+```sh
+# build container
+docker compose --profile test-gateway build
+
+# run gateway test
+docker compose --profile test-gateway up
+
+# remove container
+docker compose --profile test-gateway down
+```
+
 ## Network Data Flow
 
 The Gateway:
