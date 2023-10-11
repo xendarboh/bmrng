@@ -76,7 +76,7 @@ func TestPacketPack(t *testing.T) {
 	tPacketPack(t, true, td, 1000000000, 1000000000, []byte("1234567890"))
 
 	// should fail
-	messageSize = 32
+	messageSize = 20
 	tPacketPack(t, false, td, 1000000000, 1000000000, []byte("1234567890"))
 
 	// should pass
