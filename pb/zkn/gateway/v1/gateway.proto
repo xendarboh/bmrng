@@ -23,7 +23,7 @@ enum PacketType {
 
 // Gateway data streams are transmitted within mix-net messages as packets.
 // Packets track sequence to facilitate reassembly upon exit of the mix-net.
-message Packet {
+message PacketHeader {
   // https://protobuf.dev/programming-guides/encoding/#bools-and-enums
   // Enums are encoded as if they were int32, which is variable size.
   PacketType type = 1;
