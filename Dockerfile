@@ -76,6 +76,9 @@ RUN ./crypto/pairing/mcl/scripts/install-deps.sh \
 
 COPY . .
 
+# use locally generated proto buf code
+RUN echo "replace github.com/31333337/trellis/pb => ./pb" >> go.mod
+
 # generate code from protocol buffer files
 RUN cd pb && buf generate
 
