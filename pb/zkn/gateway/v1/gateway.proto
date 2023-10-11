@@ -6,7 +6,6 @@ enum PacketType {
   PACKET_TYPE_UNKNOWN = 0;
 
   // new stream transmission
-  // can also be deduced from sequence=0
   PACKET_TYPE_START = 1;
 
   // stream data
@@ -36,10 +35,4 @@ message Packet {
 
   // the order of the packet within the stream
   fixed64 sequence = 3;
-
-  // data length
-  fixed32 length = 4;
-
-  // contents
-  bytes data = 5;
 }
