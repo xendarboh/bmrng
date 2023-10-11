@@ -74,19 +74,16 @@ cat in.png | ./bin/test-gateway-pipe.sh > out.png
 From project root:
 
 ```sh
-# build container
-docker compose --profile test-gateway build
-
-# run gateway test
-docker compose --profile test-gateway up
+# build and run container for gateway test
+docker compose --profile test-gateway up --build
 
 # remove container
 docker compose --profile test-gateway down
 ```
 
-## Network Data Flow
+## Architecture & Protocol
 
-The Gateway:
+### Gateway
 
 - receives incoming data streams and packetizes them into messages for the mix-net
 - serves messages for mix-net clients to retrieve and send through the mix-net
@@ -133,3 +130,25 @@ end
 L1 --> L2 --> L3
 proxyIn --> mixnet --> proxyOut
 ```
+
+### Mix-Net Message
+
+- mix-net messages have identical size within rounds of a coordination
+- incoming stream data is packetized with an informational header and optional payload
+
+#### Message Format
+
+|       element        | type (bytes) |
+| :------------------: | :----------: |
+| packet header length |  uint16 (2)  |
+|  packet header data  |   variable   |
+|     data length      |  uint32 (4)  |
+|         data         |   variable   |
+
+#### Packet Header (protobuf)
+
+|  element  |          description           |
+| :-------: | :----------------------------: |
+|   type    |          packet type           |
+| stream id | data stream unique identifier  |
+| sequence  | packet order within the stream |

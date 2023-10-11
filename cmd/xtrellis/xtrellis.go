@@ -51,7 +51,7 @@ type Args struct {
 	RunType     int     `default:"1"`
 	NumUsers    int     `default:"100" help:"also NumMessages"`
 	NumServers  int     `default:"10"`
-	MessageSize int     `default:"128"` // TODO: default 1024 after dynamic gateway packet header
+	MessageSize int     `default:"1024"`
 
 	NumGroups int `default:"3"`
 	GroupSize int `default:"3"`

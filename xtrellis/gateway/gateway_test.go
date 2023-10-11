@@ -36,18 +36,14 @@ func TestMessageQueue(t *testing.T) {
 	}
 }
 
-func tPacketPack(t *testing.T, success bool, id uint64, sequence uint64, data []byte) {
-	dataLength := uint32(len(data))
-
-	packet := &gatewayv1.Packet{
-		Type:     gatewayv1.PacketType_PACKET_TYPE_DATA,
+func tPacketPack(t *testing.T, success bool, typ gatewayv1.PacketType, id uint64, sequence uint64, data []byte) {
+	header := &gatewayv1.PacketHeader{
+		Type:     typ,
 		StreamId: id,
 		Sequence: sequence,
-		Length:   dataLength,
-		Data:     data,
 	}
 
-	packed, err := packetPack(packet)
+	message, err := packetPack(header, data)
 
 	if !success {
 		if err == nil {
@@ -62,9 +58,9 @@ func tPacketPack(t *testing.T, success bool, id uint64, sequence uint64, data []
 		t.FailNow()
 	}
 
-	if len(packed) != int(messageSize) {
+	if len(message) != int(messageSize) {
 		t.Log(err)
-		t.Log("packed packet not equal to message size")
+		t.Log("message not equal to message size")
 		t.FailNow()
 	}
 }
@@ -72,14 +68,20 @@ func tPacketPack(t *testing.T, success bool, id uint64, sequence uint64, data []
 func TestPacketPack(t *testing.T) {
 	messageSize = 64
 
+	var td = gatewayv1.PacketType_PACKET_TYPE_DATA
+
 	// should pass
-	tPacketPack(t, true, 0, 0, nil)
-	tPacketPack(t, true, 1, 1, []byte("1"))
-	tPacketPack(t, true, 1000000000, 1000000000, []byte("1234567890"))
+	tPacketPack(t, true, td, 0, 0, nil)
+	tPacketPack(t, true, td, 1, 1, []byte("1"))
+	tPacketPack(t, true, td, 1000000000, 1000000000, []byte("1234567890"))
 
 	// should fail
-	messageSize = 32
-	tPacketPack(t, false, 1000000000, 1000000000, []byte("1234567890"))
+	messageSize = 20
+	tPacketPack(t, false, td, 1000000000, 1000000000, []byte("1234567890"))
+
+	// should pass
+	messageSize = 100000
+	tPacketPack(t, true, td, 1000000000, 1000000000, []byte("1234567890"))
 }
 
 func TestPacketUnpack(t *testing.T) {
@@ -89,56 +91,48 @@ func TestPacketUnpack(t *testing.T) {
 	streamid := uint64(100)
 	sequence := uint64(100)
 	data := []byte("1234")
-	length := uint32(len(data))
 
-	p1 := &gatewayv1.Packet{
+	h1 := &gatewayv1.PacketHeader{
 		Type:     ptype,
 		StreamId: streamid,
 		Sequence: sequence,
-		Length:   length,
-		Data:     data,
 	}
 
-	packed, err := packetPack(p1)
+	packed, err := packetPack(h1, data)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	p2, err := packetUnpack(packed)
+	h2, data2, err := packetUnpack(packed)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	if ptype != p2.Type {
+	if ptype != h2.Type {
 		t.Log("packet Type not equal")
 		t.FailNow()
 	}
 
-	if streamid != p2.StreamId {
+	if streamid != h2.StreamId {
 		t.Log("packet StreamId not equal")
 		t.FailNow()
 	}
 
-	if sequence != p2.Sequence {
+	if sequence != h2.Sequence {
 		t.Log("packet Sequence not equal")
 		t.FailNow()
 	}
 
-	if length != p2.Length {
-		t.Log("packet Length not equal")
-		t.FailNow()
-	}
-
-	if !bytes.Equal(data, p2.Data) {
+	if !bytes.Equal(data, data2) {
 		t.Log("packet Data not equal")
 		t.FailNow()
 	}
 }
 
 func TestPacketsSort(t *testing.T) {
-	var packets = []*gatewayv1.Packet{
+	var headers = []*gatewayv1.PacketHeader{
 		{
 			StreamId: 20,
 			Sequence: 0,
@@ -157,7 +151,7 @@ func TestPacketsSort(t *testing.T) {
 		},
 	}
 
-	var sorted = []*gatewayv1.Packet{
+	var sorted = []*gatewayv1.PacketHeader{
 		{
 			StreamId: 10,
 			Sequence: 1,
@@ -176,10 +170,10 @@ func TestPacketsSort(t *testing.T) {
 		},
 	}
 
-	sortPackets(packets)
+	sortPacketHeaders(headers)
 
-	if !reflect.DeepEqual(packets, sorted) {
-		t.Log("packets not sorted")
+	if !reflect.DeepEqual(headers, sorted) {
+		t.Log("packet headers not sorted")
 		t.FailNow()
 	}
 }
