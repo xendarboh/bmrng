@@ -65,15 +65,13 @@ func GetMaxProtocolSize() int64 {
 		return protocolSize
 	}
 
-	// Create a packet with max data sizes, marshal it, then measure the length minus data size.
+	// Create a packet with max data sizes, marshal it, then measure the bytes consumption
 	// For message wire type sizes, refer to https://protobuf.dev/programming-guides/encoding/#bools-and-enums
 
 	packet := &gatewayv1.Packet{
 		Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
 		StreamId: math.MaxUint64,
 		Sequence: math.MaxUint64,
-		Length:   math.MaxUint32,
-		Data:     []byte("----"), // not nil
 	}
 
 	packed, err := proto.Marshal(packet)
@@ -81,7 +79,10 @@ func GetMaxProtocolSize() int64 {
 		panic(err)
 	}
 
-	protocolSize = int64(len(packed) - len(packet.Data))
+	staticSize := int64(2 + 4) // packet header length (uint16) + data length (uint32)
+	variableSize := int64(len(packed))
+	protocolSize = staticSize + variableSize
+
 	return protocolSize
 }
 
@@ -263,8 +264,6 @@ func GetMessageForClient(clientId int64) ([]byte, error) {
 			Type:     gatewayv1.PacketType_PACKET_TYPE_DUMMY,
 			StreamId: uint64(clientId), // use client id for uniqueness within round
 			Sequence: 0,
-			Length:   0,
-			Data:     nil,
 		}
 		// message, err = packetPack(header)
 		buffer, space, err := prepareMessageBuffer(header)
@@ -282,24 +281,29 @@ func GetMessageForClient(clientId int64) ([]byte, error) {
 // This replaces `coordinator.Check` testing for message ids.
 // Note: There are duplicates (why?), so sort unique.
 func CheckFinalMessages(messages [][]byte, numExpected int) bool {
+
+	// get an identifier for a packet that is unique among all packets of a round
+	getPacketUID := func(p *gatewayv1.Packet) uint64 {
+		// For data packets: `StreamId` is expected to be universally unique to the input stream
+		// For dummy packets: `StreamId` is only unique within a single round
+		return p.StreamId + p.Sequence
+	}
+
 	// count unique messages and extract unique non-dummy packets
-	uniqueMessages := make(map[uint64]uint64)
+	uniqueMessages := make(map[uint64][]byte) // record message data by uid for access post-sort
 	var uniquePackets []*gatewayv1.Packet
 	for _, m := range messages {
 		packet, data, err := packetUnpack(m)
 		if err != nil {
 			panic(err)
 		}
-		packet.Data = data // TODO: hacky since packet.Data is deprecating
 
-		// For data packets: `StreamId` is expected to be universally unique to the input stream
-		// For dummy packets: `StreamId` is only unique within a single round
-		uid := packet.StreamId + packet.Sequence
+		uid := getPacketUID(packet)
 
 		// if message is unique
-		if uniqueMessages[uid] == 0 {
+		if _, seen := uniqueMessages[uid]; !seen {
 			// mark message as seen
-			uniqueMessages[uid] = uid
+			uniqueMessages[uid] = data
 
 			// if not a dummy, collect its packet
 			if packet.Type != gatewayv1.PacketType_PACKET_TYPE_DUMMY {
@@ -327,7 +331,8 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 
 		case gatewayv1.PacketType_PACKET_TYPE_DATA:
 			utils.DebugLog("[Gateway] <<< [mix-net] 🔶 DATA stream [%d][%d]", id, p.Sequence)
-			streamOut[id].Enqueue(p.Data)
+			uid := getPacketUID(p)
+			streamOut[id].Enqueue(uniqueMessages[uid])
 			break
 
 		case gatewayv1.PacketType_PACKET_TYPE_END:

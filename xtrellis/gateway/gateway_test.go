@@ -37,14 +37,10 @@ func TestMessageQueue(t *testing.T) {
 }
 
 func tPacketPack(t *testing.T, success bool, typ gatewayv1.PacketType, id uint64, sequence uint64, data []byte) {
-	dataLength := uint32(len(data))
-
 	header := &gatewayv1.Packet{
 		Type:     typ,
 		StreamId: id,
 		Sequence: sequence,
-		Length:   dataLength,
-		Data:     data,
 	}
 
 	message, err := packetPack(header, data)
