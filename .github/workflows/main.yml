@@ -30,8 +30,8 @@ jobs:
     - name: Run Go Tests
       run: docker run trellis-test go test ./xtrellis/...
 
-    - name: Docker Compose Test
+    - name: Docker Compose Test Gateway
       run: |
-        docker-compose -f docker-compose.yml up --build --abort-on-container-exit
+        docker-compose -f docker-compose.yml --profile test-gateway up --build --abort-on-container-exit
 
   # Add other jobs here if needed
