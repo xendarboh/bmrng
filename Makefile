@@ -4,6 +4,9 @@ install-deps-osx:
 install deps-ubuntu:
 	sudo apt install -y protobuf-compiler libgmp-dev cmake libssl-dev
 
+init:
+	./scripts/go-workspace-init.sh
+
 gen-proto:
 	@echo "Generating protobuf files"
 	(cd api && buf generate)
@@ -14,7 +17,7 @@ build-mcl:
 	./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh
 	@echo "Building MCL done."
 
-build-commands:
+build-commands: init
 	( cd go/trellis/cmd/server && go install && go build )
 	( cd go/trellis/cmd/client && go install && go build )
 	( cd go/trellis/cmd/coordinator && go install && go build )
