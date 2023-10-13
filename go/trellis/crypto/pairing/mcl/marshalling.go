@@ -1,6 +1,6 @@
 package mcl
 
-import "github.com/31333337/bmrng/mods/trellis/errors"
+import "github.com/31333337/bmrng/go/trellis/errors"
 
 var FR_LEN int
 var G1_LEN int

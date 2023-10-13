@@ -3,9 +3,9 @@ package common
 import (
 	"encoding/binary"
 
-	"github.com/31333337/bmrng/mods/trellis/crypto"
-	"github.com/31333337/bmrng/mods/trellis/crypto/token"
-	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/go/trellis/crypto"
+	"github.com/31333337/bmrng/go/trellis/crypto/token"
+	"github.com/31333337/bmrng/go/trellis/errors"
 )
 
 func (l *LightningEnvelope) Len() int {

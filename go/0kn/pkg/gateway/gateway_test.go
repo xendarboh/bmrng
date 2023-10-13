@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	gatewayv1 "github.com/31333337/bmrng/mods/proto/gen/proto/go/gateway/v1"
+	gatewayv1 "github.com/31333337/bmrng/api/gen/proto/go/gateway/v1"
 )
 
 func TestMessageQueue(t *testing.T) {

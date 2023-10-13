@@ -7,10 +7,10 @@ import (
 	//	"os"
 	"flag"
 
-	"github.com/31333337/bmrng/mods/trellis/config"
-	"github.com/31333337/bmrng/mods/trellis/errors"
-	"github.com/31333337/bmrng/mods/trellis/network"
-	"github.com/31333337/bmrng/mods/trellis/server"
+	"github.com/31333337/bmrng/go/trellis/config"
+	"github.com/31333337/bmrng/go/trellis/errors"
+	"github.com/31333337/bmrng/go/trellis/network"
+	"github.com/31333337/bmrng/go/trellis/server"
 )
 
 func main() {

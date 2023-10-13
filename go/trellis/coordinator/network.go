@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/31333337/bmrng/mods/trellis/client"
-	"github.com/31333337/bmrng/mods/trellis/config"
-	coord "github.com/31333337/bmrng/mods/trellis/coordinator/messages"
-	"github.com/31333337/bmrng/mods/trellis/network"
-	"github.com/31333337/bmrng/mods/trellis/network/messages"
-	"github.com/31333337/bmrng/mods/trellis/server"
+	"github.com/31333337/bmrng/go/trellis/client"
+	"github.com/31333337/bmrng/go/trellis/config"
+	coord "github.com/31333337/bmrng/go/trellis/coordinator/messages"
+	"github.com/31333337/bmrng/go/trellis/network"
+	"github.com/31333337/bmrng/go/trellis/network/messages"
+	"github.com/31333337/bmrng/go/trellis/server"
 )
 
 const (

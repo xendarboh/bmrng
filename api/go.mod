@@ -1,4 +1,4 @@
-module github.com/31333337/bmrng/mods/proto
+module github.com/31333337/bmrng/api
 
 go 1.21.1
 

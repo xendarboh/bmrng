@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/31333337/bmrng/mods/trellis/crypto/ec"
-	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/go/trellis/crypto/ec"
+	"github.com/31333337/bmrng/go/trellis/errors"
 )
 
 func SigningCurveScalarAdd(dest *big.Int, src *big.Int) *big.Int {

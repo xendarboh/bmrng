@@ -12,7 +12,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/31333337/bmrng/mods/trellis/crypto"
+	"github.com/31333337/bmrng/go/trellis/crypto"
 )
 
 /*

@@ -3,8 +3,8 @@ package buffers
 import (
 	"sync"
 
-	"github.com/31333337/bmrng/mods/trellis/config"
-	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/go/trellis/config"
+	"github.com/31333337/bmrng/go/trellis/errors"
 )
 
 // If I had a read/write mmap I could just map anonymous for in memory and map file otherwise

@@ -2,7 +2,7 @@
 
 set -ex
 
-cd mods/0kn/cmd/xtrellis
+cd go/0kn/cmd/xtrellis
 ./xtrellis \
   coordinator \
   --gatewayenable \

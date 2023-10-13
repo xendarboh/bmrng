@@ -6,19 +6,19 @@ install deps-ubuntu:
 
 gen-proto:
 	@echo "Generating protobuf files"
-	(cd mods/proto && buf generate)
+	(cd api && buf generate)
 	@echo "Generating protobuf done."
 
 build-mcl:
 	@echo "Building MCL..."
-	./mods/trellis/crypto/pairing/mcl/scripts/install-deps.sh
+	./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh
 	@echo "Building MCL done."
 
 build-commands:
-	( cd mods/trellis/cmd/server && go install && go build )
-	( cd mods/trellis/cmd/client && go install && go build )
-	( cd mods/trellis/cmd/coordinator && go install && go build )
-	( cd mods/0kn/cmd/xtrellis && go install && go build )
+	( cd go/trellis/cmd/server && go install && go build )
+	( cd go/trellis/cmd/client && go install && go build )
+	( cd go/trellis/cmd/coordinator && go install && go build )
+	( cd go/0kn/cmd/xtrellis && go install && go build )
 
 clean:
 	git clean -X -f

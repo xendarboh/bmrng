@@ -1,4 +1,4 @@
-module github.com/31333337/bmrng/mods/trellis
+module github.com/31333337/bmrng/go/trellis
 
 go 1.21.1
 

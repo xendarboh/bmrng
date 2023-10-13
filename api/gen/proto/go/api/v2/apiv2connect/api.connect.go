@@ -7,7 +7,7 @@ package apiv2connect
 import (
 	context "context"
 	errors "errors"
-	v2 "github.com/31333337/bmrng/mods/proto/gen/proto/go/api/v2"
+	v2 "github.com/31333337/bmrng/api/gen/proto/go/api/v2"
 	connect_go "github.com/bufbuild/connect-go"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	http "net/http"

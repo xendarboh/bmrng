@@ -8,7 +8,7 @@ import (
 	"github.com/oasisprotocol/curve25519-voi/primitives/ed25519"
 
 	"filippo.io/edwards25519"
-	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/go/trellis/errors"
 )
 
 type VerificationKey ed25519.PublicKey

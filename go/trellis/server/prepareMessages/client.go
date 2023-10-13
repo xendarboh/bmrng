@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"crypto/rand"
 
-	"github.com/31333337/bmrng/mods/trellis/config"
-	coord "github.com/31333337/bmrng/mods/trellis/coordinator/messages"
-	"github.com/31333337/bmrng/mods/trellis/crypto"
-	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
-	"github.com/31333337/bmrng/mods/trellis/crypto/token"
-	"github.com/31333337/bmrng/mods/trellis/errors"
-	"github.com/31333337/bmrng/mods/trellis/network"
-	"github.com/31333337/bmrng/mods/trellis/network/messages"
-	"github.com/31333337/bmrng/mods/trellis/server/common"
+	"github.com/31333337/bmrng/go/trellis/config"
+	coord "github.com/31333337/bmrng/go/trellis/coordinator/messages"
+	"github.com/31333337/bmrng/go/trellis/crypto"
+	"github.com/31333337/bmrng/go/trellis/crypto/pairing/mcl"
+	"github.com/31333337/bmrng/go/trellis/crypto/token"
+	"github.com/31333337/bmrng/go/trellis/errors"
+	"github.com/31333337/bmrng/go/trellis/network"
+	"github.com/31333337/bmrng/go/trellis/network/messages"
+	"github.com/31333337/bmrng/go/trellis/server/common"
 )
 
 type Client struct {

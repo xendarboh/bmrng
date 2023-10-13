@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/31333337/bmrng/mods/trellis/config"
-	"github.com/31333337/bmrng/mods/trellis/network"
+	"github.com/31333337/bmrng/go/trellis/config"
+	"github.com/31333337/bmrng/go/trellis/network"
 )
 
 const ServerProcessName = "server"

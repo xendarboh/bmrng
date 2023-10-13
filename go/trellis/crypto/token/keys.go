@@ -1,9 +1,9 @@
 package token
 
 import (
-	"github.com/31333337/bmrng/mods/trellis/crypto/pairing"
-	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/kyber_wrap"
-	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
+	"github.com/31333337/bmrng/go/trellis/crypto/pairing"
+	"github.com/31333337/bmrng/go/trellis/crypto/pairing/kyber_wrap"
+	"github.com/31333337/bmrng/go/trellis/crypto/pairing/mcl"
 )
 
 type TokenPublicKey struct {

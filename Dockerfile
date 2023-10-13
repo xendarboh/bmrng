@@ -62,18 +62,18 @@ WORKDIR /src
 # pre-copy/cache go.mod for pre-downloading dependencies
 # and only redownloading them in subsequent builds if they change
 
-COPY mods/0kn/go.* ./mods/0kn/
-COPY mods/proto/go.* ./mods/proto/
-COPY mods/trellis/go.* ./mods/trellis/
+COPY api/go.* ./api/
+COPY go/0kn/go.* ./go/0kn/
+COPY go/trellis/go.* ./go/trellis/
 
-RUN cd mods/0kn && go mod download && go mod verify
-RUN cd mods/proto && go mod download && go mod verify
-RUN cd mods/trellis && go mod download && go mod verify
+RUN cd api && go mod download && go mod verify
+RUN cd go/0kn && go mod download && go mod verify
+RUN cd go/trellis && go mod download && go mod verify
 
 
 # build and install mcl; use docker build cache
-COPY mods/trellis/crypto/pairing/mcl/scripts ./mods/trellis/crypto/pairing/mcl/scripts
-RUN ./mods/trellis/crypto/pairing/mcl/scripts/install-deps.sh \
+COPY go/trellis/crypto/pairing/mcl/scripts ./go/trellis/crypto/pairing/mcl/scripts
+RUN ./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh \
   && ldconfig
 
 COPY . .
@@ -82,11 +82,11 @@ COPY . .
 RUN ./scripts/go-work-init.sh
 
 # generate code from protocol buffer files
-RUN cd mods/proto && buf generate
+RUN cd api && buf generate
 
 # build trellis; server, client, coordinator
 RUN true \
-  && cd mods/trellis/cmd/server \
+  && cd go/trellis/cmd/server \
     && go install \
     && go build \
   && cd ../client \
@@ -96,6 +96,6 @@ RUN true \
     && go install \
     && go build
 
-RUN cd mods/0kn/cmd/xtrellis \
+RUN cd go/0kn/cmd/xtrellis \
   && go install \
   && go build

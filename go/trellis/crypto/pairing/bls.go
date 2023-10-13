@@ -1,6 +1,6 @@
 package pairing
 
-import "github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
+import "github.com/31333337/bmrng/go/trellis/crypto/pairing/mcl"
 
 // Port of https://github.com/herumi/mcl/blob/v1.52/sample/bls_sig.cpp
 

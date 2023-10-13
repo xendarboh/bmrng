@@ -3,15 +3,15 @@ package server
 import (
 	"sync"
 
-	"github.com/31333337/bmrng/mods/trellis/crypto"
-	"github.com/31333337/bmrng/mods/trellis/crypto/token"
-	"github.com/31333337/bmrng/mods/trellis/errors"
-	"github.com/31333337/bmrng/mods/trellis/network/messages"
-	"github.com/31333337/bmrng/mods/trellis/network/synchronization"
-	"github.com/31333337/bmrng/mods/trellis/server/checkpoint"
-	"github.com/31333337/bmrng/mods/trellis/server/common"
-	"github.com/31333337/bmrng/mods/trellis/server/keyExchange"
-	"github.com/31333337/bmrng/mods/trellis/server/prepareMessages"
+	"github.com/31333337/bmrng/go/trellis/crypto"
+	"github.com/31333337/bmrng/go/trellis/crypto/token"
+	"github.com/31333337/bmrng/go/trellis/errors"
+	"github.com/31333337/bmrng/go/trellis/network/messages"
+	"github.com/31333337/bmrng/go/trellis/network/synchronization"
+	"github.com/31333337/bmrng/go/trellis/server/checkpoint"
+	"github.com/31333337/bmrng/go/trellis/server/common"
+	"github.com/31333337/bmrng/go/trellis/server/keyExchange"
+	"github.com/31333337/bmrng/go/trellis/server/prepareMessages"
 )
 
 // A server can be part of multiple anytrust groups

@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 
-	"github.com/31333337/bmrng/mods/trellis/crypto"
+	"github.com/31333337/bmrng/go/trellis/crypto"
 )
 
 /*

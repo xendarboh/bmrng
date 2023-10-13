@@ -7,10 +7,10 @@ import (
 	//	"os"
 	"fmt"
 
-	"github.com/31333337/bmrng/mods/trellis/client"
-	"github.com/31333337/bmrng/mods/trellis/config"
-	"github.com/31333337/bmrng/mods/trellis/errors"
-	"github.com/31333337/bmrng/mods/trellis/network"
+	"github.com/31333337/bmrng/go/trellis/client"
+	"github.com/31333337/bmrng/go/trellis/config"
+	"github.com/31333337/bmrng/go/trellis/errors"
+	"github.com/31333337/bmrng/go/trellis/network"
 )
 
 func main() {

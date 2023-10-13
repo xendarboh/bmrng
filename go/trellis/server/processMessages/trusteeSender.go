@@ -1,9 +1,9 @@
 package processMessages
 
 import (
-	"github.com/31333337/bmrng/mods/trellis/crypto"
-	"github.com/31333337/bmrng/mods/trellis/network/buffers"
-	"github.com/31333337/bmrng/mods/trellis/server/common"
+	"github.com/31333337/bmrng/go/trellis/crypto"
+	"github.com/31333337/bmrng/go/trellis/network/buffers"
+	"github.com/31333337/bmrng/go/trellis/server/common"
 )
 
 type TrusteeRouter struct {
