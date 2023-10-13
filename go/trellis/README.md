@@ -3,44 +3,54 @@
 **Paper:** https://eprint.iacr.org/2022/1548.pdf (NDSS 2023)
 The following instructions are for an AWS amazon linux 2 AMI
 
-# Install Guide
+**Original Source:** https://github.com/SimonLangowski/trellis
 
-## Dependencies
-this repo and Go `1.20` or later
+## Install
 
-### On Ubuntu
-First install your dependencies
+### Dependencies
+
+[Go](https://golang.org/doc/install) >= 1.20
+
+#### On Ubuntu
+
 ```sh
 sudo apt install gcc g++ libgmp3-dev cmake openssl-dev
 ```
-### On OSX
+
+#### On OSX
+
 ```sh
 brew install gmp cmake openssl
 ```
 
-## Building the Commands
+#### MCL crypto library
 
-First the crypto library
 ```sh
-cd crypto/pairing/mcl/scripts
 export CC=gcc
 export CXX=g++
-./install-deps.sh
-```
-Then the commands themselves
-```sh
-( cd cmd/server && go install && go build )
-( cd cmd/client && go install && go build )
-( cd cmd/coordinator && go install && go build )
+./crypto/pairing/mcl/scripts/install-deps.sh
 ```
 
-# Usage Guide
+### Build
+
+```sh
+cd cmd/server && go install && go build
+cd cmd/client && go install && go build
+cd cmd/coordinator && go install && go build
+```
+
+## Usage
+
 Basic test
+
 ```
-./cmd/coordinator --numusers 100 --numservers 10 --numlayers 10 --groupsize 3 --numgroups 3 --runtype 0
-./cmd/coordinator --numusers 100 --numservers 10 --numlayers 10 --groupsize 3 --numgroups 3 --runtype 1
+cd cmd/coordinator
+./coordinator --numusers 100 --numservers 10 --numlayers 10 --groupsize 3 --numgroups 3 --runtype 0
+./coordinator --numusers 100 --numservers 10 --numlayers 10 --groupsize 3 --numgroups 3 --runtype 1
 ```
+
 ### Parameters
+
 | argument   | meaning                                         |
 | ---------- | ----------------------------------------------- |
 | f          | fraction of servers controlled by the adversary |
@@ -53,33 +63,28 @@ Basic test
 
 Additional arguments will be computed based on the provided values, but you can provide an override for them, for example, to use a simulated number of bins.
 
-<!-- ### Helper files
+### Helper files
+
 Helper files (may need modification for your aws account)
-| file                 | purpose                                        |
-| -------------------- | ---------------------------------------------- |
-| aws_global_setup.py  | setup private vpn network                      |
-| aws_launch.py        | launch test in one aws region                  |
-| aws_global_launch.py | launch test in multiple aws regions            |
-| aws_bandwidth.py     | limit the bandwidth of each machine            |
-| aws_latency.py       | add (artificial) network delay to each machine |
-| aws_terminate.py     | kill all the machines with the specified key   | --> |
+| file | purpose |
+| ---- | ----- |
+| aws_global_setup.py | setup private vpn network |
+| aws_launch.py | launch test in one aws region |
+| aws_global_launch.py | launch test in multiple aws regions |
+| aws_bandwidth.py | limit the bandwidth of each machine |
+| aws_latency.py | add (artificial) network delay to each machine |
+| aws_terminate.py | kill all the machines with the specified key |
 
+### Other programs
 
-<!-- ### Other programs 
-Run key exchange in ```server/keyExchange```
-``` go test exchangeKey_test.go ```
+Run key exchange in `server/keyExchange`
+`go test exchangeKey_test.go`
 Calculate the number of bins empirically (for 1/256 probability of failure)
-In ```cmd/simulation```
-| argument   | meaning                 |
-| ---------- | ----------------------- |
+In `cmd/simulation`
+| argument | meaning |
+| ---- | ----- |
 | numservers | total number of servers |
-| numusers   | number of messages      |
-| numlayers  | number of layers        |
-| numtrials  | number of trials        |
+| numusers | number of messages |
+| numlayers | number of layers |
+| numtrials | number of trials |
 Remember to then add additional layers to account for failure probability.
-
-
-
-
-
- -->
