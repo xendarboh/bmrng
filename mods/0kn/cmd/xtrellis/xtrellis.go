@@ -7,14 +7,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/31333337/trellis/client"
-	"github.com/31333337/trellis/config"
-	"github.com/31333337/trellis/coordinator"
-	"github.com/31333337/trellis/errors"
-	"github.com/31333337/trellis/network"
-	"github.com/31333337/trellis/server"
-	"github.com/31333337/trellis/xtrellis/gateway"
-	"github.com/31333337/trellis/xtrellis/utils"
+	"github.com/31333337/bmrng/mods/0kn/pkg/gateway"
+	"github.com/31333337/bmrng/mods/0kn/pkg/utils"
+	"github.com/31333337/bmrng/mods/trellis/client"
+	"github.com/31333337/bmrng/mods/trellis/config"
+	"github.com/31333337/bmrng/mods/trellis/coordinator"
+	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/mods/trellis/network"
+	"github.com/31333337/bmrng/mods/trellis/server"
 	arg "github.com/alexflint/go-arg"
 )
 

@@ -5,7 +5,7 @@ import (
 	"runtime/pprof"
 	"testing"
 
-	"github.com/31333337/trellis/crypto/pairing/mcl"
+	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
 )
 
 func TestToken(t *testing.T) {

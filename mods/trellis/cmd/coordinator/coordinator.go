@@ -9,9 +9,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/31333337/trellis/config"
-	"github.com/31333337/trellis/coordinator"
-	"github.com/31333337/trellis/server/prepareMessages"
+	"github.com/31333337/bmrng/mods/trellis/config"
+	"github.com/31333337/bmrng/mods/trellis/coordinator"
+	"github.com/31333337/bmrng/mods/trellis/server/prepareMessages"
 	"github.com/alexflint/go-arg"
 )
 

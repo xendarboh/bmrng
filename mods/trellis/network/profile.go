@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/31333337/trellis/config"
-	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/bmrng/mods/trellis/config"
+	"github.com/31333337/bmrng/mods/trellis/network/messages"
 )
 
 // don't spend too long lol

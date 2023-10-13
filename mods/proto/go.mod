@@ -1,4 +1,4 @@
-module github.com/31333337/trellis/pb
+module github.com/31333337/bmrng/mods/proto
 
 go 1.21.1
 

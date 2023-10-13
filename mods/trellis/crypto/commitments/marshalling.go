@@ -1,6 +1,6 @@
 package commitments
 
-import "github.com/31333337/trellis/errors"
+import "github.com/31333337/bmrng/mods/trellis/errors"
 
 func (c *Commitment) Len() int {
 	return COMMIT_SIZE

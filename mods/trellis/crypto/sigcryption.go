@@ -5,7 +5,7 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 
-	"github.com/31333337/trellis/errors"
+	"github.com/31333337/bmrng/mods/trellis/errors"
 )
 
 // derived from box.SecretSeal and box.SecretOpen

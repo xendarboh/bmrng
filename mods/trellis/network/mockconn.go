@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/31333337/trellis/errors"
+	"github.com/31333337/bmrng/mods/trellis/errors"
 )
 
 type MockConnNetwork struct {

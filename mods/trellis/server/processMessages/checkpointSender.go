@@ -3,13 +3,13 @@ package processMessages
 import (
 	"sync"
 
-	"github.com/31333337/trellis/crypto"
-	"github.com/31333337/trellis/errors"
-	"github.com/31333337/trellis/network"
-	"github.com/31333337/trellis/network/buffers"
-	"github.com/31333337/trellis/network/messages"
-	"github.com/31333337/trellis/server/checkpoint"
-	"github.com/31333337/trellis/server/common"
+	"github.com/31333337/bmrng/mods/trellis/crypto"
+	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/mods/trellis/network"
+	"github.com/31333337/bmrng/mods/trellis/network/buffers"
+	"github.com/31333337/bmrng/mods/trellis/network/messages"
+	"github.com/31333337/bmrng/mods/trellis/server/checkpoint"
+	"github.com/31333337/bmrng/mods/trellis/server/common"
 )
 
 type Progress struct {

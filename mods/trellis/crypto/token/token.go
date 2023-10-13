@@ -3,9 +3,9 @@ package token
 import (
 	"crypto/sha256"
 
-	"github.com/31333337/trellis/config"
-	"github.com/31333337/trellis/crypto/pairing/mcl"
-	"github.com/31333337/trellis/errors"
+	"github.com/31333337/bmrng/mods/trellis/config"
+	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
+	"github.com/31333337/bmrng/mods/trellis/errors"
 )
 
 var TOKEN_SIZE = mcl.G1_LEN

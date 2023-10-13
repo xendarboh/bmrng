@@ -10,7 +10,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/31333337/trellis/config"
+	"github.com/31333337/bmrng/mods/trellis/config"
 	"github.com/alexflint/go-arg"
 	"github.com/gonum/stat"
 	"gonum.org/v1/plot"

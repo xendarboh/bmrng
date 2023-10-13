@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/31333337/trellis/config"
-	coord "github.com/31333337/trellis/coordinator/messages"
-	"github.com/31333337/trellis/crypto"
-	"github.com/31333337/trellis/crypto/pairing/mcl"
-	"github.com/31333337/trellis/crypto/token"
-	"github.com/31333337/trellis/errors"
-	"github.com/31333337/trellis/server/prepareMessages"
-	"github.com/31333337/trellis/xtrellis/gateway"
+	"github.com/31333337/bmrng/mods/0kn/pkg/gateway"
+	"github.com/31333337/bmrng/mods/trellis/config"
+	coord "github.com/31333337/bmrng/mods/trellis/coordinator/messages"
+	"github.com/31333337/bmrng/mods/trellis/crypto"
+	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
+	"github.com/31333337/bmrng/mods/trellis/crypto/token"
+	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/mods/trellis/server/prepareMessages"
 )
 
 // The coordinator simulates the glocal clock time when the round begins, the time when receipts should have been received by, etc.

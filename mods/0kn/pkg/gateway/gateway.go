@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	gatewayv1 "github.com/31333337/trellis/pb/gen/proto/go/gateway/v1"
-	"github.com/31333337/trellis/xtrellis/utils"
+	"github.com/31333337/bmrng/mods/0kn/pkg/utils"
+	gatewayv1 "github.com/31333337/bmrng/mods/proto/gen/proto/go/gateway/v1"
 	"google.golang.org/protobuf/proto"
 )
 

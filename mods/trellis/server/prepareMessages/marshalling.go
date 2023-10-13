@@ -3,10 +3,10 @@ package prepareMessages
 import (
 	"encoding/binary"
 
-	"github.com/31333337/trellis/crypto"
-	"github.com/31333337/trellis/crypto/pairing/mcl"
-	"github.com/31333337/trellis/errors"
-	"github.com/31333337/trellis/server/common"
+	"github.com/31333337/bmrng/mods/trellis/crypto"
+	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
+	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/mods/trellis/server/common"
 )
 
 type NewClientRequest struct {

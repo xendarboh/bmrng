@@ -1,8 +1,8 @@
 package pairing
 
 import (
-	"github.com/31333337/trellis/crypto/pairing/kyber_wrap"
-	"github.com/31333337/trellis/crypto/pairing/mcl"
+	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/kyber_wrap"
+	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
 )
 
 var G2GeneratorPrecompute *Precompute

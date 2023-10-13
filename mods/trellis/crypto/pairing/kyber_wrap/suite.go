@@ -1,7 +1,7 @@
 package kyber_wrap
 
 import (
-	"github.com/31333337/trellis/crypto/pairing/mcl"
+	"github.com/31333337/bmrng/mods/trellis/crypto/pairing/mcl"
 	"go.dedis.ch/kyber/v3"
 )
 

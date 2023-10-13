@@ -10,9 +10,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/31333337/trellis/config"
-	coord "github.com/31333337/trellis/coordinator/messages"
-	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/bmrng/mods/trellis/config"
+	coord "github.com/31333337/bmrng/mods/trellis/coordinator/messages"
+	"github.com/31333337/bmrng/mods/trellis/network/messages"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

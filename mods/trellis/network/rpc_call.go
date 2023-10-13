@@ -8,9 +8,9 @@ import (
 	"crypto/x509"
 	"sync"
 
-	"github.com/31333337/trellis/config"
-	"github.com/31333337/trellis/errors"
-	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/bmrng/mods/trellis/config"
+	"github.com/31333337/bmrng/mods/trellis/errors"
+	"github.com/31333337/bmrng/mods/trellis/network/messages"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

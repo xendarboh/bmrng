@@ -1,10 +1,10 @@
 package common
 
 import (
-	"github.com/31333337/trellis/crypto/token"
-	"github.com/31333337/trellis/network/messages"
+	"github.com/31333337/bmrng/mods/trellis/crypto/token"
+	"github.com/31333337/bmrng/mods/trellis/network/messages"
 
-	"github.com/31333337/trellis/crypto"
+	"github.com/31333337/bmrng/mods/trellis/crypto"
 )
 
 // See shuffleMessages.go as well
