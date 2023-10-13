@@ -18,3 +18,7 @@ build-commands:
 	( cd mods/trellis/cmd/server && go install && go build )
 	( cd mods/trellis/cmd/client && go install && go build )
 	( cd mods/trellis/cmd/coordinator && go install && go build )
+	( cd mods/0kn/cmd/xtrellis && go install && go build )
+
+clean:
+	git clean -X -f
