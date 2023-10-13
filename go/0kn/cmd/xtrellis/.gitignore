@@ -1,6 +1,0 @@
-*.json
-!groups.json
-!servers.json
-
-*.log
-xtrellis
