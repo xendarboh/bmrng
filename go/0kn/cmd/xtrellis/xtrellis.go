@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/31333337/bmrng/go/0kn/internal/utils"
 	"github.com/31333337/bmrng/go/0kn/pkg/gateway"
-	"github.com/31333337/bmrng/go/0kn/pkg/utils"
 	"github.com/31333337/bmrng/go/trellis/client"
 	"github.com/31333337/bmrng/go/trellis/config"
 	"github.com/31333337/bmrng/go/trellis/coordinator"

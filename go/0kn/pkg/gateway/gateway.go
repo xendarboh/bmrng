@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/31333337/bmrng/go/0kn/pkg/utils"
 	gatewayv1 "github.com/31333337/bmrng/api/gen/proto/go/gateway/v1"
+	"github.com/31333337/bmrng/go/0kn/internal/utils"
 	"google.golang.org/protobuf/proto"
 )
 
