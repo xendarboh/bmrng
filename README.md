@@ -1,85 +1,108 @@
-# Trellis: Fast and Scalable Metadata Private Anonymous Broadcast
+# 0KN
 
-**Paper:** https://eprint.iacr.org/2022/1548.pdf (NDSS 2023)
-The following instructions are for an AWS amazon linux 2 AMI
+## Development
 
-# Install Guide
+### Documentation
 
-## Dependencies
-this repo and Go `1.20` or later
+- [Architecture](/docs/README.md#architecture)
+- [Protocol](/docs/README.md#protocol)
+- [Trellis](/go/trellis/README.md)
+- [API](/api/README.md)
 
-### On Ubuntu
-First install your dependencies
+### Project Structure
+
+The basic structure of this project:
+
+```
+.
+├── api/                       # Protocol Buffers
+├── docs/                      # Documentation
+├── go/                        # Go Modules
+│   ├── 0kn/                   # 0KN; integrated launcher, libs
+│   └── trellis/               # Trellis
+└── scripts/
+    ├── go-workspace-init.sh   # init go workspace for local dev
+    ├── test-gateway-ci.sh     # full gateway test
+    ├── test-gateway-io.sh     # test gateway I/O
+    └── test-gateway-pipe.sh   # test gateway pipe
+```
+
+### Prerequisites
+
+- [go](https://go.dev/doc/install) `>= 1.21`
+- [Trellis dependencies](/go/trellis/README.md#dependencies)
+
+Optional; for generating code from Protocol Buffers:
+
+- [Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)
+- [Buf](https://buf.build/docs/installation)
+
+Utilities used by test scripts:
+
+- netcat
+- pkill
+- wget
+
+### Build
+
+Prepare go workspace:
+
 ```sh
-sudo apt install gcc g++ libgmp3-dev cmake openssl-dev
+./scripts/go-workspace-init.sh
 ```
-### On OSX
+
+(Optional) Generate code from Protocol Buffers:
+
 ```sh
-brew install gmp cmake openssl
+make gen-proto
 ```
 
-## Building the Commands
+Build commands:
 
-First the crypto library
 ```sh
-cd crypto/pairing/mcl/scripts
-export CC=gcc
-export CXX=g++
-./install-deps.sh
+make build-commands
 ```
-Then the commands themselves
+
+### E2E Tests
+
+#### Full Automated Test
+
+
 ```sh
-( cd cmd/server && go install && go build )
-( cd cmd/client && go install && go build )
-( cd cmd/coordinator && go install && go build )
+./scripts/test-gateway-ci.sh
 ```
 
-# Usage Guide
-Basic test
+#### With Local Mix-Net
+
+1. Run a coordinated local mix-net with gateway enabled, for example:
+
+   ```sh
+   cd go/0kn/cmd/xtrellis
+   ./xtrellis coordinator --gatewayenable --debug
+   ```
+
+   `CTRL-C` to exit.
+
+2. Then, in a separate terminal (from project root):
+
+   Send `100KB` random data through the mix-net and compare data in/out:
+
+   ```sh
+   ./scripts/test-gateway-io.sh 102400
+   ```
+
+   Pipe generic data through the mix-net:
+
+   ```sh
+   cat in.png | ./scripts/test-gateway-pipe.sh > out.png
+   ```
+
+#### With Docker Compose
+
+```sh
+# build and run container for gateway test
+docker compose --profile test-gateway up --build
+
+# remove container
+docker compose --profile test-gateway down
 ```
-./cmd/coordinator --numusers 100 --numservers 10 --numlayers 10 --groupsize 3 --numgroups 3 --runtype 0
-./cmd/coordinator --numusers 100 --numservers 10 --numlayers 10 --groupsize 3 --numgroups 3 --runtype 1
-```
-### Parameters
-| argument   | meaning                                         |
-| ---------- | ----------------------------------------------- |
-| f          | fraction of servers controlled by the adversary |
-| numservers | total number of servers                         |
-| numusers   | number of messages                              |
-| numlayers  | (optional) number of layers                     |
-| groupsize  | (optional) size of anytrust group               |
-| numgroups  | (optional) number of anytrust groups            |
-| runtype    | 0: create keys, 1: run local, 2: run on servers |
-
-Additional arguments will be computed based on the provided values, but you can provide an override for them, for example, to use a simulated number of bins.
-
-<!-- ### Helper files
-Helper files (may need modification for your aws account)
-| file                 | purpose                                        |
-| -------------------- | ---------------------------------------------- |
-| aws_global_setup.py  | setup private vpn network                      |
-| aws_launch.py        | launch test in one aws region                  |
-| aws_global_launch.py | launch test in multiple aws regions            |
-| aws_bandwidth.py     | limit the bandwidth of each machine            |
-| aws_latency.py       | add (artificial) network delay to each machine |
-| aws_terminate.py     | kill all the machines with the specified key   | --> |
-
-
-<!-- ### Other programs 
-Run key exchange in ```server/keyExchange```
-``` go test exchangeKey_test.go ```
-Calculate the number of bins empirically (for 1/256 probability of failure)
-In ```cmd/simulation```
-| argument   | meaning                 |
-| ---------- | ----------------------- |
-| numservers | total number of servers |
-| numusers   | number of messages      |
-| numlayers  | number of layers        |
-| numtrials  | number of trials        |
-Remember to then add additional layers to account for failure probability.
-
-
-
-
-
- -->

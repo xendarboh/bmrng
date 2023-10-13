@@ -1,25 +1,27 @@
 install-deps-osx:
-	brew intall protobuf gmp cmake openssl
+	brew install protobuf gmp cmake openssl
 
 install deps-ubuntu:
 	sudo apt install -y protobuf-compiler libgmp-dev cmake libssl-dev
 
+init:
+	./scripts/go-workspace-init.sh
+
 gen-proto:
 	@echo "Generating protobuf files"
-	(cd pb && buf generate)
+	(cd api && buf generate)
 	@echo "Generating protobuf done."
 
 build-mcl:
 	@echo "Building MCL..."
-	@cd mcl && make
+	./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh
 	@echo "Building MCL done."
 
-build-protobuf:
-	@echo "Building protobuf..."
-	@cd protobuf && make
-	@echo "Building protobuf done."
+build-commands: init
+	( cd go/trellis/cmd/server && go install && go build )
+	( cd go/trellis/cmd/client && go install && go build )
+	( cd go/trellis/cmd/coordinator && go install && go build )
+	( cd go/0kn/cmd/xtrellis && go install && go build )
 
-build-commands:
-	( cd cmd/server && go install && go build )
-	( cd cmd/client && go install && go build )
-	( cd cmd/coordinator && go install && go build )
+clean:
+	git clean -X -f
