@@ -122,6 +122,15 @@ func LaunchCoordinator(args Args) {
 	log.Printf("%+v", args)
 
 	////////////////////////////////////////////////////////////////////////
+	// change current working directory for trellis hardcoded paths
+	////////////////////////////////////////////////////////////////////////
+	trellisCoordinatorDirectory := "../../../trellis/cmd/coordinator/"
+	if err := os.Chdir(trellisCoordinatorDirectory); err != nil {
+		log.Println("Failed to change the working directory:", err)
+		return
+	}
+
+	////////////////////////////////////////////////////////////////////////
 	// setup gateway and start proxy if enabled
 	////////////////////////////////////////////////////////////////////////
 	if args.MessageSize <= int(gateway.GetMaxProtocolSize()) {
