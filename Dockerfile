@@ -79,7 +79,7 @@ RUN ./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh \
 COPY . .
 
 # setup go workspace
-RUN ./scripts/go-work-init.sh
+RUN ./scripts/go-workspace-init.sh
 
 # generate code from protocol buffer files
 RUN cd api && buf generate
