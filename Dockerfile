@@ -56,35 +56,37 @@ ARG VERSION_BUF=latest
 RUN go install github.com/bufbuild/buf/cmd/buf@${VERSION_BUF} \
   && go clean --cache
 
-WORKDIR /opt/trellis
+WORKDIR /src
 
 
 # pre-copy/cache go.mod for pre-downloading dependencies
 # and only redownloading them in subsequent builds if they change
 
-COPY pb/go.mod pb/go.sum ./pb/
-RUN cd pb && go mod download && go mod verify
+COPY mods/0kn/go.* ./mods/0kn/
+COPY mods/proto/go.* ./mods/proto/
+COPY mods/trellis/go.* ./mods/trellis/
 
-COPY go.mod go.sum ./
-RUN go mod download && go mod verify
+RUN cd mods/0kn && go mod download && go mod verify
+RUN cd mods/proto && go mod download && go mod verify
+RUN cd mods/trellis && go mod download && go mod verify
 
 
 # build and install mcl; use docker build cache
-COPY ./crypto/pairing/mcl/scripts ./crypto/pairing/mcl/scripts
-RUN ./crypto/pairing/mcl/scripts/install-deps.sh \
+COPY mods/trellis/crypto/pairing/mcl/scripts ./mods/trellis/crypto/pairing/mcl/scripts
+RUN ./mods/trellis/crypto/pairing/mcl/scripts/install-deps.sh \
   && ldconfig
 
 COPY . .
 
-# use locally generated proto buf code
-RUN echo "replace github.com/31333337/trellis/pb => ./pb" >> go.mod
+# setup go workspace
+RUN ./scripts/go-work-init.sh
 
 # generate code from protocol buffer files
-RUN cd pb && buf generate
+RUN cd mods/proto && buf generate
 
 # build trellis; server, client, coordinator
 RUN true \
-  && cd cmd/server \
+  && cd mods/trellis/cmd/server \
     && go install \
     && go build \
   && cd ../client \
@@ -94,6 +96,6 @@ RUN true \
     && go install \
     && go build
 
-RUN cd cmd/xtrellis \
+RUN cd mods/0kn/cmd/xtrellis \
   && go install \
   && go build

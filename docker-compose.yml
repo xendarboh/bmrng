@@ -16,5 +16,4 @@ services:
     expose:
       - 9000
       - 9900
-    working_dir: /opt/trellis/cmd/xtrellis
-    command: ./bin/test-gateway-ci.sh
+    command: ./scripts/test-gateway-ci.sh
