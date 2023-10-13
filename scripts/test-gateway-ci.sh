@@ -19,7 +19,5 @@ sleep 10s
 # kill spawned mix-net servers
 pkill -P ${xtrellis_pid}
 
-# kill the coordinator
-kill ${xtrellis_pid}
-
-exit 0
+# kill the coordinator (and don't care if kill fails)
+kill ${xtrellis_pid} || exit 0
