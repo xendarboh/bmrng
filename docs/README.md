@@ -2,53 +2,90 @@
 
 ## Architecture
 
-### Gateway
+The following structure represents a map for current development and will evolve for underlying Trellis constructs to operate within the decentralized self-organizing Zero-Knowledge Network.
 
-- receives incoming data streams and packetizes them into messages for the mix-net
-- serves messages for mix-net clients to retrieve and send through the mix-net
-- receives messages leaving the mix-net
-- serves outgoing data streams reassembled from mix-net messages
+### Data Flow
 
 ```mermaid
+%%{init: {'theme': 'neutral', flowchart' : {'curve' : 'linear'}}}%%
 flowchart LR
     subgraph mixnet ["mix-net"]
-    direction LR
+        subgraph servers ["servers"]
+            direction LR
 
-    subgraph L1 ["L 1"]
-        direction LR
-        X[" "]
-        Y[" "]
-        Z[" "]
+            subgraph L1 ["Layer 1"]
+                direction LR
+                X["S 1"]
+                Y["..."]
+                Z["S N"]
+            end
+
+            subgraph L2 ["..."]
+                direction LR
+                X1["S 1"]
+                Y1["..."]
+                Z1["S N"]
+            end
+
+            subgraph L3 ["Layer N"]
+                direction LR
+                X2["S 1"]
+                Y2["..."]
+                Z2["S N"]
+            end
+
+            L1 -.-> L2 -.-> L3
+        end
+
+        subgraph clients ["clients"]
+            direction LR
+            C1["C 1"]
+            C2["..."]
+            C3["C N"]
+        end
     end
 
-    subgraph L2 ["..."]
-        direction LR
-        X1[" "]
-        Y1[" "]
-        Z1[" "]
+    subgraph gateway1 ["gateway"]
+        subgraph proxyIn ["In"]
+        end
     end
 
-    subgraph L3 ["L N"]
-        direction LR
-        X2[" "]
-        Y2[" "]
-        Z2[" "]
+    subgraph gateway2 ["gateway"]
+        subgraph proxyOut ["Out"]
+        end
     end
-end
 
-subgraph gateway1 ["gateway"]
-    subgraph proxyIn ["In"]
-    end
-end
+    proxyIn -.-> C1 -.-> servers
+    proxyIn -.-> C2 -.-> servers
+    proxyIn -.-> C3 -.-> servers
 
-subgraph gateway2 ["gateway"]
-    subgraph proxyOut ["Out"]
-    end
-end
+    servers -.-> proxyOut
 
-L1 --> L2 --> L3
-proxyIn --> mixnet --> proxyOut
+    src["Data<br>Source"] --> proxyIn
+    proxyOut --> dest["Data<br>Destination"]
 ```
+
+### Mix-Net
+
+#### Gateways
+
+- receive incoming data streams and packetizes them into messages of identitical size and characteristics for transmission through the mix-net
+- serve messages for mix-net clients to retrieve and send through the mix-net
+- if no stream data is in queue for transmission, dummy messages are given to clients to transmit
+- receive messages leaving the mix-net
+- serve outgoing data streams reassembled from mix-net messages
+
+#### Clients
+
+- retrieve messages from a gateway and send to servers, as coordinated in time by the coordinator
+
+#### Servers
+
+- are arranged in multiple layers, receive messages from clients, and send to a server in the next layer, as coordinated in time by the coordinator
+
+#### Coordinator
+
+- conducts the lifecycle and timing of message transmission rounds
 
 ## Protocol
 
