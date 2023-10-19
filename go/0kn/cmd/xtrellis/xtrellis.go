@@ -18,11 +18,7 @@ import (
 	arg "github.com/alexflint/go-arg"
 )
 
-type Args struct {
-	Mode        string `arg:"positional,required" help:"execution mode: coordinator, server, or client"`
-	Debug       bool   `default:"False" help:"enable debug log output"`
-	DebugCaller bool   `default:"False" help:"with debug enabled, print calling function's info"`
-
+type ArgsCommon struct {
 	////////////////////////////////////
 	// files
 	////////////////////////////////////
@@ -32,15 +28,11 @@ type Args struct {
 	KeyFile     string `default:"keys.json"`
 	MessageFile string `default:"messages.json"`
 	OutFile     string `default:"res.json"`
+}
 
-	////////////////////////////////////
-	// client & server
-	////////////////////////////////////
-	Addr string `default:"localhost:8000"`
+type ArgsCoordinator struct {
+	ArgsCommon
 
-	////////////////////////////////////
-	// coordinator
-	////////////////////////////////////
 	GatewayAddrIn  string `default:"localhost:9000" help:"gateway proxy address for incoming mix-net messages"`
 	GatewayAddrOut string `default:"localhost:9900" help:"gateway proxy address for outgoing mix-net messages"`
 	GatewayEnable  bool   `default:"False" help:"enable client message gateway"`
@@ -68,8 +60,30 @@ type Args struct {
 	Interval         int  `default:"0"`
 }
 
-func LaunchCoordinator(args Args) {
-	p := arg.MustParse(&args)
+type ArgsServer struct {
+	ArgsCommon
+
+	Addr string `default:"localhost:8000"`
+}
+
+type ArgsClient struct {
+	ArgsCommon
+
+	Addr string `default:"localhost:8000"`
+}
+
+type Args struct {
+	// commands
+	Coordinator *ArgsCoordinator `arg:"subcommand:coordinator"`
+	Server      *ArgsServer      `arg:"subcommand:server"`
+	Client      *ArgsClient      `arg:"subcommand:client"`
+
+	// global options
+	Debug       bool `default:"False" help:"enable debug log output"`
+	DebugCaller bool `default:"False" help:"with debug enabled, print calling function's info"`
+}
+
+func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
 
 	////////////////////////////////////////////////////////////////////////
 	// process args
@@ -84,7 +98,7 @@ func LaunchCoordinator(args Args) {
 			}
 		} else {
 			log.Printf("Set groupsize or f")
-			p.WriteHelp(os.Stdout)
+			argParser.WriteHelp(os.Stdout)
 			return
 		}
 	}
@@ -99,7 +113,7 @@ func LaunchCoordinator(args Args) {
 			args.NumLayers = config.NumLayers(args.NumUsers, args.F)
 		} else {
 			log.Printf("Set numlayers or f")
-			p.WriteHelp(os.Stdout)
+			argParser.WriteHelp(os.Stdout)
 			return
 		}
 	}
@@ -359,9 +373,7 @@ func LaunchCoordinator(args Args) {
 }
 
 // from cmd/server/server.go
-func LaunchServer(args Args) {
-	arg.MustParse(&args)
-
+func LaunchServer(args ArgsServer) {
 	serversFile := args.ServerFile
 	groupsFile := args.GroupFile
 	addr := args.Addr
@@ -389,9 +401,7 @@ func LaunchServer(args Args) {
 }
 
 // from cmd/client/client.go
-func LaunchClient(args Args) {
-	arg.MustParse(&args)
-
+func LaunchClient(args ArgsClient) {
 	serversFile := args.ServerFile
 	groupsFile := args.GroupFile
 	clientsFile := args.ClientFile
@@ -430,7 +440,7 @@ func LaunchClient(args Args) {
 
 func main() {
 	var args Args
-	p := arg.MustParse(&args)
+	argParser := arg.MustParse(&args)
 
 	utils.SetDebugLogEnabled(args.Debug)
 	utils.SetDebugLogCallerEnabled(args.DebugCaller)
@@ -444,19 +454,18 @@ func main() {
 		return
 	}
 
-	switch args.Mode {
-	case "coordinator":
-		LaunchCoordinator(args)
+	switch {
+	case args.Coordinator != nil:
+		LaunchCoordinator(*args.Coordinator, argParser)
 
-	case "client":
-		LaunchClient(args)
+	case args.Client != nil:
+		LaunchClient(*args.Client)
 
-	case "server":
-		LaunchServer(args)
+	case args.Server != nil:
+		LaunchServer(*args.Server)
 
 	default:
-		p.WriteHelp(os.Stdout)
+		argParser.WriteHelp(os.Stdout)
 		os.Exit(1)
 	}
-
 }
