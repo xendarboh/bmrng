@@ -15,12 +15,7 @@ import (
 	"github.com/31333337/bmrng/go/trellis/coordinator"
 )
 
-func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
-
-	////////////////////////////////////////////////////////////////////////
-	// process args
-	////////////////////////////////////////////////////////////////////////
-
+func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 	if args.GroupSize == 0 {
 		if args.F != 0 {
 			if args.NumGroups != 0 {
@@ -66,6 +61,10 @@ func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
 	}
 
 	log.Printf("%+v", args)
+}
+
+func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
+	processArgs(&args, argParser)
 
 	////////////////////////////////////////////////////////////////////////
 	// setup gateway and start proxy if enabled
