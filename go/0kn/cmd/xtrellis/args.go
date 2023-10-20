@@ -1,9 +1,7 @@
 package main
 
 type ArgsCommon struct {
-	////////////////////////////////////
 	// files
-	////////////////////////////////////
 	ServerFile  string `default:"servers.json"`
 	GroupFile   string `default:"groups.json"`
 	ClientFile  string `default:"clients.json"`
@@ -14,12 +12,17 @@ type ArgsCommon struct {
 
 type ArgsCoordinator struct {
 	ArgsCommon
+	ArgsCoordinatorCommon
 
+	Experiment *ArgsCoordinatorExperiment `arg:"subcommand:experiment" help:"conduct a coordinated experiment"`
+	Mixnet     *ArgsCoordinatorMixnet     `arg:"subcommand:mixnet" help:"setup and run mix-net"`
+}
+
+type ArgsCoordinatorCommon struct {
 	GatewayAddrIn  string `default:"localhost:9000" help:"gateway proxy address for incoming mix-net messages"`
 	GatewayAddrOut string `default:"localhost:9900" help:"gateway proxy address for outgoing mix-net messages"`
 	GatewayEnable  bool   `default:"False" help:"enable client message gateway"`
 	RoundInterval  int    `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
-	RunExperiment  bool   `default:"False" help:"run coordinator experiment"`
 
 	F           float64 `default:"0"`
 	RunType     int     `default:"1"`
@@ -40,6 +43,12 @@ type ArgsCoordinator struct {
 	LoadMessages     bool `default:"False"`
 	StartIdx         int  `default:"0"`
 	Interval         int  `default:"0"`
+}
+
+type ArgsCoordinatorExperiment struct {
+}
+
+type ArgsCoordinatorMixnet struct {
 }
 
 type ArgsServer struct {

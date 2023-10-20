@@ -78,7 +78,7 @@ make build-commands
 
    ```sh
    cd go/0kn/cmd/xtrellis
-   ./xtrellis coordinator --gatewayenable --debug
+   ./xtrellis coordinator mixnet --gatewayenable --debug
    ```
 
    `CTRL-C` to exit.

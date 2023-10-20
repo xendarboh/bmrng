@@ -63,21 +63,7 @@ func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 	log.Printf("%+v", args)
 }
 
-func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
-	processArgs(&args, argParser)
-
-	////////////////////////////////////////////////////////////////////////
-	// setup gateway and start proxy if enabled
-	////////////////////////////////////////////////////////////////////////
-	if args.MessageSize <= int(gateway.GetMaxProtocolSize()) {
-		log.Fatal("Error: MessageSize too small for Gateway packet protocol")
-	}
-
-	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddrIn, args.GatewayAddrOut)
-
-	////////////////////////////////////////////////////////////////////////
-	// setup network
-	////////////////////////////////////////////////////////////////////////
+func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {
 	var net *coordinator.CoordinatorNetwork
 
 	switch args.RunType {
@@ -99,115 +85,32 @@ func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
 			}
 		}
 		net = coordinator.NewLocalNetwork(serverConfigs, groupConfigs, clientConfigs)
+	}
+
+	return net
+}
+
+func runExperiment(args ArgsCoordinator) {
+	net := setupNetwork(args)
+	if args.RunType == 1 {
 		defer net.KillAll()
 	}
 
-	////////////////////////////////////////////////////////////////////////
-	// run experiment
-	////////////////////////////////////////////////////////////////////////
-	if args.RunExperiment {
-		numLayers := args.NumLayers
-		numServers := args.NumServers
-		numMessages := args.NumUsers
+	numLayers := args.NumLayers
+	numServers := args.NumServers
+	numMessages := args.NumUsers
 
-		c := coordinator.NewCoordinator(net)
-		if args.LoadMessages {
-			c.LoadKeys(args.KeyFile)
-			c.LoadMessages(args.MessageFile)
-		}
-
-		l := 0
-		if !args.SkipPathGen {
-			for i := 0; i < numLayers; i++ {
-				log.Printf("\n")
-				log.Printf("Round %v", i)
-				exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
-				if i == 0 {
-					exp.KeyGen = !args.LoadMessages
-					exp.LoadKeys = args.LoadMessages
-				}
-				exp.Info.PathEstablishment = true
-				exp.Info.LastLayer = (i == numLayers-1)
-				exp.Info.Check = !args.NoCheck
-				exp.Info.Interval = int64(args.Interval)
-
-				if args.BinSize > 0 {
-					exp.Info.BinSize = int64(args.BinSize)
-				} else if i == 0 {
-					log.Printf("Using bin size %d", exp.Info.BinSize)
-				}
-
-				if args.LimitSize > 0 {
-					exp.Info.BoomerangLimit = int64(args.LimitSize)
-				} else {
-					exp.Info.BoomerangLimit = int64(numLayers)
-				}
-
-				exp.Info.ReceiptLayer = 0
-				if i-int(exp.Info.BoomerangLimit) > 0 {
-					exp.Info.ReceiptLayer = int64(i) - exp.Info.BoomerangLimit
-				}
-
-				exp.Info.NextLayer = int64(i)
-
-				err := c.DoAction(exp)
-				if err != nil {
-					log.Print(err)
-					return
-				}
-				log.Printf("Path round %v took %v", i, time.Since(exp.ExperimentStartTime))
-				exp.RecordToFile(args.OutFile)
-			}
-			l = numLayers
-		}
-
-		numLightning := 5
-		for i := l; i < l+numLightning; i++ {
-			log.Printf("\n")
-			log.Printf("Round %v", i)
-			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
-			exp.Info.PathEstablishment = false
-			exp.Info.MessageSize = int64(args.MessageSize)
-			exp.Info.Check = !args.NoCheck
-			if args.BinSize > 0 {
-				exp.Info.BinSize = int64(args.BinSize)
-			}
-			if args.SkipPathGen && (i == 0) {
-				exp.Info.SkipPathGen = true
-				exp.KeyGen = true
-			}
-			exp.Info.Interval = int64(args.Interval)
-			err := c.DoAction(exp)
-			if err != nil {
-				log.Print(err)
-				return
-			}
-			log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
-			exp.RecordToFile(args.OutFile)
-		}
-		l += numLightning
+	c := coordinator.NewCoordinator(net)
+	if args.LoadMessages {
+		c.LoadKeys(args.KeyFile)
+		c.LoadMessages(args.MessageFile)
 	}
 
-	////////////////////////////////////////////////////////////////////////
-	// run mix-net
-	////////////////////////////////////////////////////////////////////////
-	if !args.RunExperiment {
-		log.Printf("Running mix-net...")
-
-		numLayers := args.NumLayers
-		numServers := args.NumServers
-		numMessages := args.NumUsers
-
-		c := coordinator.NewCoordinator(net)
-		if args.LoadMessages {
-			c.LoadKeys(args.KeyFile)
-			c.LoadMessages(args.MessageFile)
-		}
-
-		//////////////////////////////////////////////////////
-		// run rounds for each layer to establish paths
-		//////////////////////////////////////////////////////
+	l := 0
+	if !args.SkipPathGen {
 		for i := 0; i < numLayers; i++ {
+			log.Printf("\n")
+			log.Printf("Round %v", i)
 			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
 			if i == 0 {
 				exp.KeyGen = !args.LoadMessages
@@ -245,60 +148,166 @@ func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
 			log.Printf("Path round %v took %v", i, time.Since(exp.ExperimentStartTime))
 			exp.RecordToFile(args.OutFile)
 		}
+		l = numLayers
+	}
 
-		////////////////////////////////////////////////////////////////////////
-		// wait for CTRL-C to exit, leave servers running
-		// https://stackoverflow.com/a/18158859
-		////////////////////////////////////////////////////////////////////////
-		ctrl := make(chan os.Signal)
-		signal.Notify(ctrl, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-ctrl
-			log.Println("Exiting")
-			os.Exit(1)
-		}()
-		log.Println("Coordinator running... CTRL-C to exit.")
-
-		//////////////////////////////////////////////////////
-		// continually run lightning rounds to transmit messages
-		//////////////////////////////////////////////////////
-		var stats = utils.NewTimeStats()
-		for i := numLayers; ; i++ {
-			exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
-
-			exp.Info.PathEstablishment = false
-			exp.Info.MessageSize = int64(args.MessageSize)
-			exp.Info.Check = !args.NoCheck
-
-			if args.BinSize > 0 {
-				exp.Info.BinSize = int64(args.BinSize)
-			}
-
-			if args.SkipPathGen && (i == 0) {
-				exp.Info.SkipPathGen = true
-				exp.KeyGen = true
-			}
-
-			exp.Info.Interval = int64(args.Interval)
-
-			err := c.DoAction(exp)
-			if err != nil {
-				log.Print(err)
-				return
-			}
-
-			stats.RecordTime(float64(time.Since(exp.ExperimentStartTime)))
-
-			// print time stats
-			c := 10 // print cycle, so terminal not too busy
-			if i%c == 0 {
-				log.Printf("Lightning round %v : %s", i, stats.GetStatsString())
-			}
-
-			exp.RecordToFile(args.OutFile)
-
-			// sleep between rounds
-			time.Sleep(time.Duration(args.RoundInterval) * time.Millisecond)
+	numLightning := 5
+	for i := l; i < l+numLightning; i++ {
+		log.Printf("\n")
+		log.Printf("Round %v", i)
+		exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
+		exp.Info.PathEstablishment = false
+		exp.Info.MessageSize = int64(args.MessageSize)
+		exp.Info.Check = !args.NoCheck
+		if args.BinSize > 0 {
+			exp.Info.BinSize = int64(args.BinSize)
 		}
+		if args.SkipPathGen && (i == 0) {
+			exp.Info.SkipPathGen = true
+			exp.KeyGen = true
+		}
+		exp.Info.Interval = int64(args.Interval)
+		err := c.DoAction(exp)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		log.Printf("Lightning round %v took %v", i, time.Since(exp.ExperimentStartTime))
+		exp.RecordToFile(args.OutFile)
+	}
+}
+
+func runMixnet(args ArgsCoordinator) {
+	log.Printf("Running mix-net...")
+
+	// setup gateway and start proxy if enabled
+	if args.MessageSize <= int(gateway.GetMaxProtocolSize()) {
+		log.Fatal("Error: MessageSize too small for Gateway packet protocol")
+	}
+	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddrIn, args.GatewayAddrOut)
+
+	// setup network
+	net := setupNetwork(args)
+	if args.RunType == 1 {
+		defer net.KillAll()
+	}
+
+	numLayers := args.NumLayers
+	numServers := args.NumServers
+	numMessages := args.NumUsers
+
+	c := coordinator.NewCoordinator(net)
+	if args.LoadMessages {
+		c.LoadKeys(args.KeyFile)
+		c.LoadMessages(args.MessageFile)
+	}
+
+	//////////////////////////////////////////////////////
+	// run rounds for each layer to establish paths
+	//////////////////////////////////////////////////////
+	for i := 0; i < numLayers; i++ {
+		exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
+		if i == 0 {
+			exp.KeyGen = !args.LoadMessages
+			exp.LoadKeys = args.LoadMessages
+		}
+		exp.Info.PathEstablishment = true
+		exp.Info.LastLayer = (i == numLayers-1)
+		exp.Info.Check = !args.NoCheck
+		exp.Info.Interval = int64(args.Interval)
+
+		if args.BinSize > 0 {
+			exp.Info.BinSize = int64(args.BinSize)
+		} else if i == 0 {
+			log.Printf("Using bin size %d", exp.Info.BinSize)
+		}
+
+		if args.LimitSize > 0 {
+			exp.Info.BoomerangLimit = int64(args.LimitSize)
+		} else {
+			exp.Info.BoomerangLimit = int64(numLayers)
+		}
+
+		exp.Info.ReceiptLayer = 0
+		if i-int(exp.Info.BoomerangLimit) > 0 {
+			exp.Info.ReceiptLayer = int64(i) - exp.Info.BoomerangLimit
+		}
+
+		exp.Info.NextLayer = int64(i)
+
+		err := c.DoAction(exp)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		log.Printf("Path round %v took %v", i, time.Since(exp.ExperimentStartTime))
+		exp.RecordToFile(args.OutFile)
+	}
+
+	////////////////////////////////////////////////////////////////////////
+	// wait for CTRL-C to exit, leave servers running
+	// https://stackoverflow.com/a/18158859
+	////////////////////////////////////////////////////////////////////////
+	ctrl := make(chan os.Signal)
+	signal.Notify(ctrl, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ctrl
+		log.Println("Exiting")
+		os.Exit(1)
+	}()
+	log.Println("Coordinator running... CTRL-C to exit.")
+
+	//////////////////////////////////////////////////////
+	// continually run lightning rounds to transmit messages
+	//////////////////////////////////////////////////////
+	var stats = utils.NewTimeStats()
+	for i := numLayers; ; i++ {
+		exp := c.NewExperiment(i, numLayers, numServers, numMessages, args)
+
+		exp.Info.PathEstablishment = false
+		exp.Info.MessageSize = int64(args.MessageSize)
+		exp.Info.Check = !args.NoCheck
+
+		if args.BinSize > 0 {
+			exp.Info.BinSize = int64(args.BinSize)
+		}
+
+		if args.SkipPathGen && (i == 0) {
+			exp.Info.SkipPathGen = true
+			exp.KeyGen = true
+		}
+
+		exp.Info.Interval = int64(args.Interval)
+
+		err := c.DoAction(exp)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
+		stats.RecordTime(float64(time.Since(exp.ExperimentStartTime)))
+
+		// print time stats
+		c := 10 // print cycle, so terminal not too busy
+		if i%c == 0 {
+			log.Printf("Lightning round %v : %s", i, stats.GetStatsString())
+		}
+
+		exp.RecordToFile(args.OutFile)
+
+		// sleep between rounds
+		time.Sleep(time.Duration(args.RoundInterval) * time.Millisecond)
+	}
+}
+
+func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
+	processArgs(&args, argParser)
+
+	switch {
+	case args.Experiment != nil:
+		runExperiment(args)
+
+	case args.Mixnet != nil:
+		runMixnet(args)
 	}
 }
