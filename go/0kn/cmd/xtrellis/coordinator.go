@@ -15,6 +15,14 @@ import (
 	"github.com/31333337/bmrng/go/trellis/coordinator"
 )
 
+const (
+	// run network in the same process
+	NETWORK_TYPE_IN_PROCESS = iota
+
+	// run local network in separate processes on the same machine
+	NETWORK_TYPE_LOCAL
+)
+
 func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 	if args.GroupSize == 0 {
 		if args.F != 0 {
@@ -66,11 +74,11 @@ func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {
 	var net *coordinator.CoordinatorNetwork
 
-	switch args.RunType {
-	case 0: // run in the same process
+	switch args.NetworkType {
+	case NETWORK_TYPE_IN_PROCESS: // run in the same process
 		net = coordinator.NewInProcessNetwork(args.NumServers, args.NumGroups, args.GroupSize)
 
-	case 1: // run in separate process on the same machine
+	case NETWORK_TYPE_LOCAL: // run in separate process on the same machine
 		serverConfigs, groupConfigs, clientConfigs := coordinator.NewLocalConfig(args.NumServers, args.NumGroups, args.GroupSize, args.NumClientServers, false)
 		if args.LoadMessages {
 			oldServers, err := config.UnmarshalServersFromFile(args.ServerFile)
@@ -92,7 +100,7 @@ func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {
 
 func runExperiment(args ArgsCoordinator) {
 	net := setupNetwork(args)
-	if args.RunType == 1 {
+	if args.NetworkType == NETWORK_TYPE_LOCAL {
 		defer net.KillAll()
 	}
 
@@ -188,7 +196,7 @@ func runMixnet(args ArgsCoordinator) {
 
 	// setup network
 	net := setupNetwork(args)
-	if args.RunType == 1 {
+	if args.NetworkType == NETWORK_TYPE_LOCAL {
 		defer net.KillAll()
 	}
 

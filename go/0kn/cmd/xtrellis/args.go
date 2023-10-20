@@ -25,7 +25,7 @@ type ArgsCoordinatorCommon struct {
 	RoundInterval  int    `default:"0" help:"delay (in ms) between mix-net lightning rounds"`
 
 	F           float64 `default:"0"`
-	RunType     int     `default:"1"`
+	NetworkType int     `default:"1" help:"0: single process, 1: local separate processes"`
 	NumUsers    int     `default:"100" help:"also NumMessages"`
 	NumServers  int     `default:"10"`
 	MessageSize int     `default:"1024"`
