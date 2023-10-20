@@ -23,6 +23,21 @@ const (
 	NETWORK_TYPE_LOCAL
 )
 
+func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
+	processArgs(&args, argParser)
+
+	switch {
+	case args.Config != nil:
+		runConfigGenerator(args)
+
+	case args.Experiment != nil:
+		runExperiment(args)
+
+	case args.Mixnet != nil:
+		runMixnet(args)
+	}
+}
+
 func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 	if args.GroupSize == 0 {
 		if args.F != 0 {
@@ -308,14 +323,4 @@ func runMixnet(args ArgsCoordinator) {
 	}
 }
 
-func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
-	processArgs(&args, argParser)
-
-	switch {
-	case args.Experiment != nil:
-		runExperiment(args)
-
-	case args.Mixnet != nil:
-		runMixnet(args)
-	}
 }
