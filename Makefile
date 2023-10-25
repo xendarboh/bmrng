@@ -25,3 +25,7 @@ build-commands: init
 
 clean:
 	git clean -X -f
+
+docker-images:
+	docker compose --profile build build
+	cd docker/remote-network-simulation && docker compose --profile build build

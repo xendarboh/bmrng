@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  build:
+    profiles: ["build"]
+    image: ${IMG_REPO}/${IMG_NAME}-remote:${IMG_TAG}
+    build:
+      args:
+        - SSHUSER=${SSHUSER}
+      dockerfile: ./Dockerfile
+
+  server-0:
+    container_name: server-0
+    hostname: server-0
+    image: ${IMG_REPO}/${IMG_NAME}-remote:${IMG_TAG}
+    init: true
+    environment:
+      - SSHUSER=${SSHUSER}
+    expose:
+      - 22
+      - 8000
+      - 8900
+    volumes:
+      - ./volumes/ssh:/home/${SSHUSER}/.ssh
+
+  server-1:
+    extends:
+      service: server-0
+    container_name: server-1
+    hostname: server-1
+
+  server-2:
+    extends:
+      service: server-0
+    container_name: server-2
+    hostname: server-2
+
+  coordinator:
+    extends:
+      service: server-0
+    container_name: coordinator
+    hostname: coordinator
+    command: /tmp/coordinator-start.sh
