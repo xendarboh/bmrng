@@ -32,4 +32,4 @@ jobs:
 
     - name: Docker Compose Test
       run: |
-        docker-compose -f docker-compose.yml up --build --abort-on-container-exit
+        docker-compose -f docker/base/docker-compose.yml up --build --abort-on-container-exit

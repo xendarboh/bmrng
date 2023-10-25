@@ -5,8 +5,11 @@ set -ex
 make docker-images
 
 # (re)create volume shared by containers
-dir_volumes=docker/remote-network-simulation/volumes
-rm -rf ${dir_volumes}
-mkdir -m 700 -p ${dir_volumes}/ssh
+dir=docker/remote-network-simulation
+rm -rf ${dir}/volumes
+mkdir -m 700 -p ${dir}/volumes/ssh
 
-cd docker/remote-network-simulation && docker compose --profile run up
+docker compose \
+  --project-directory ${dir} \
+  --profile \
+  run up

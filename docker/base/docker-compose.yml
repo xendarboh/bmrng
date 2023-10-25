@@ -6,7 +6,8 @@ services:
     image: ${IMG_REPO}/${IMG_NAME}:${IMG_TAG}
     init: true
     build:
-      context: ./
+      context: ../..
+      dockerfile: ./docker/base/Dockerfile
 
   xtrellis-test-gateway:
     profiles: ["test-gateway"]
