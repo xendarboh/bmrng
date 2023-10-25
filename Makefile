@@ -29,3 +29,6 @@ clean:
 docker-images:
 	docker compose --project-directory docker/base/ --profile build build
 	docker compose --project-directory docker/remote-network-simulation/ --profile build build
+
+docker-clean:
+	docker compose --project-directory docker/remote-network-simulation --profile run down
