@@ -25,3 +25,17 @@ build-commands: init
 
 clean:
 	git clean -X -f
+
+docker-images:
+	docker compose --project-directory docker/base/ --profile build build
+	docker compose --project-directory docker/remote-network-simulation/ --profile build build
+
+docker-clean:
+	docker compose --project-directory docker/base --profile test-gateway down
+	docker compose --project-directory docker/remote-network-simulation --profile run down
+
+# source env vars
+include docker/base/.env
+docker-very-clean: docker-clean
+	docker rmi -f ${IMG_REPO}/${IMG_NAME}:${IMG_TAG}
+	docker rmi -f ${IMG_REPO}/${IMG_NAME}-remote:${IMG_TAG}

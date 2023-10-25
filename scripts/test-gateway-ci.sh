@@ -8,6 +8,7 @@ cd go/0kn/cmd/xtrellis
   mixnet \
   --gatewayenable \
   --debug \
+  ${@} \
   &
 cd -
 

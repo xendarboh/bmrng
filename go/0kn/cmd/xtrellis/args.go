@@ -14,6 +14,7 @@ type ArgsCoordinator struct {
 	ArgsCommon
 	ArgsCoordinatorCommon
 
+	Config     *ArgsCoordinatorConfig     `arg:"subcommand:config" help:"generate configuration"`
 	Experiment *ArgsCoordinatorExperiment `arg:"subcommand:experiment" help:"conduct a coordinated experiment"`
 	Mixnet     *ArgsCoordinatorMixnet     `arg:"subcommand:mixnet" help:"setup and run mix-net"`
 }
@@ -43,6 +44,10 @@ type ArgsCoordinatorCommon struct {
 	LoadMessages     bool `default:"False"`
 	StartIdx         int  `default:"0"`
 	Interval         int  `default:"0"`
+}
+
+type ArgsCoordinatorConfig struct {
+	HostsFile string `default:"hosts.list" help:"file with list of remote hosts"`
 }
 
 type ArgsCoordinatorExperiment struct {

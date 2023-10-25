@@ -1,6 +1,6 @@
 .env
 .git
-docker-compose.yml
+docker/
 
 api/gen
 

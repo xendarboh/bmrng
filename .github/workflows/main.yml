@@ -25,13 +25,13 @@ jobs:
         restore-keys: ${{ runner.os }}-go-
 
     - name: Build Docker Image
-      run: docker build -t trellis-test .
+      run: docker compose --project-directory docker/base/ --profile build build
 
     - name: Run Go Tests
-      run: docker run trellis-test go test ./go/0kn/...
+      run: docker run 0kn/trellis:latest go test ./go/0kn/...
 
     - name: Docker Compose Test Gateway
       run: |
-        docker-compose -f docker-compose.yml --profile test-gateway up --build --abort-on-container-exit
+        docker-compose -f docker/base/docker-compose.yml --profile test-gateway up --build --abort-on-container-exit
 
   # Add other jobs here if needed

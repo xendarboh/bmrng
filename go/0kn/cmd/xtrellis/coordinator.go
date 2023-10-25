@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"log"
 	"os"
 	"os/signal"
@@ -9,7 +10,7 @@ import (
 
 	arg "github.com/alexflint/go-arg"
 
-	"github.com/31333337/bmrng/go/0kn/internal/utils"
+	"github.com/31333337/bmrng/go/0kn/pkg/utils"
 	"github.com/31333337/bmrng/go/0kn/pkg/gateway"
 	"github.com/31333337/bmrng/go/trellis/config"
 	"github.com/31333337/bmrng/go/trellis/coordinator"
@@ -22,6 +23,21 @@ const (
 	// run local network in separate processes on the same machine
 	NETWORK_TYPE_LOCAL
 )
+
+func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
+	processArgs(&args, argParser)
+
+	switch {
+	case args.Config != nil:
+		runConfigGenerator(args)
+
+	case args.Experiment != nil:
+		runExperiment(args)
+
+	case args.Mixnet != nil:
+		runMixnet(args)
+	}
+}
 
 func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 	if args.GroupSize == 0 {
@@ -308,14 +324,68 @@ func runMixnet(args ArgsCoordinator) {
 	}
 }
 
-func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
-	processArgs(&args, argParser)
+func runConfigGenerator(args ArgsCoordinator) {
+	hosts := readHostsfile(args.Config.HostsFile)
 
-	switch {
-	case args.Experiment != nil:
-		runExperiment(args)
+	servers := make(map[int64]*config.Server)
+	clients := make(map[int64]*config.Server)
 
-	case args.Mixnet != nil:
-		runMixnet(args)
+	ids := make([]int64, 0)
+	for id, addr := range hosts {
+		ids = append(ids, int64(id))
+		if len(hosts) >= args.NumClientServers+args.NumServers {
+			if id < args.NumServers {
+				servers[int64(id)] = config.CreateServerWithExisting(addr+":8000", int64(id), servers)
+			} else if id < args.NumClientServers+args.NumServers {
+				clients[int64(id-args.NumServers)] = config.CreateServerWithExisting(addr+":8900", int64(id-args.NumServers), servers)
+			}
+		} else {
+			if id < args.NumServers {
+				servers[int64(id)] = config.CreateServerWithExisting(addr+":8000", int64(id), servers)
+			}
+			// create on same servers
+			if id < args.NumClientServers {
+				clients[int64(id)] = config.CreateServerWithExisting(addr+":8900", int64(id), servers)
+			}
+		}
 	}
+	ids = ids[:args.NumServers]
+
+	groups := config.CreateSeparateGroupsWithSize(args.NumGroups, args.GroupSize, ids)
+
+	if args.NumClientServers > 0 {
+		err := config.MarshalServersToFile(args.ClientFile, clients)
+		if err != nil {
+			log.Fatalf("Could not write clients file %s", args.ClientFile)
+		}
+	}
+
+	err := config.MarshalServersToFile(args.ServerFile, servers)
+	if err != nil {
+		log.Fatalf("Could not write servers file %s", args.ServerFile)
+	}
+
+	err = config.MarshalGroupsToFile(args.GroupFile, groups)
+	if err != nil {
+		log.Fatalf("Could not write group file %s", args.GroupFile)
+	}
+}
+
+func readHostsfile(fn string) []string {
+	ifile, err := os.Open(fn)
+	if err != nil {
+		log.Fatalf("Could not open %s", fn)
+	}
+	reader := csv.NewReader(ifile)
+	hosts, err := reader.ReadAll()
+	if err != nil {
+		log.Fatal("Could not read the list of hosts")
+	}
+	ifile.Close()
+
+	output := make([]string, 0)
+	for _, host := range hosts {
+		output = append(output, host[0])
+	}
+	return output
 }

@@ -69,7 +69,7 @@ func StartRemoteServers(servers map[int64]*config.Server, processName, serverFil
 		go func(s *config.Server) {
 			cmd := exec.Command("ssh", "-i", "~/.ssh/lkey", "-o", "StrictHostKeyChecking=no",
 				fmt.Sprintf("ec2-user@%s", config.Host(s.Address)),
-				fmt.Sprintf("~/go/bin/%s ~/go/bin/%s ~/go/bin/%s ~/go/bin/%s %s", processName, serverFile, groupFile, clientsFile, s.Address))
+				fmt.Sprintf("~/go/bin/%s ~/go/bin/%s ~/go/bin/%s %s", processName, serverFile, groupFile, s.Address))
 			cmd.Stderr = os.Stderr
 			cmd.Stdout = os.Stdout
 			// log.Printf("Running %v", cmd)
