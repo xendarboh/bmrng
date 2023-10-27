@@ -1,7 +1,7 @@
 install-deps-osx:
 	brew install protobuf gmp cmake openssl
 
-install deps-ubuntu:
+install-deps-ubuntu:
 	sudo apt install -y protobuf-compiler libgmp-dev cmake libssl-dev
 
 init:
