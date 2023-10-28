@@ -54,7 +54,7 @@ Prepare go workspace:
 (Optional) Generate code from Protocol Buffers:
 
 ```sh
-make gen-proto
+make protobuf
 ```
 
 Build commands:

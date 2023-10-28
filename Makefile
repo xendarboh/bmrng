@@ -14,11 +14,6 @@ install-deps-mcl:
 init:
 	./scripts/go-workspace-init.sh
 
-.PHONY: gen-proto
-gen-proto:
-	@echo "Generating protobuf files"
-	(cd api && buf generate)
-	@echo "Generating protobuf done."
 
 .PHONY: build-commands
 build-commands: init
@@ -26,6 +21,9 @@ build-commands: init
 	( cd go/trellis/cmd/client && go install && go build )
 	( cd go/trellis/cmd/coordinator && go install && go build )
 	( cd go/0kn/cmd/xtrellis && go install && go build )
+.PHONY: protobuf
+protobuf:
+	cd api && buf generate
 
 .PHONY: clean
 clean:
