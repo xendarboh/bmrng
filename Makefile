@@ -4,7 +4,7 @@ install-deps-osx:
 
 .PHONY: install-deps-ubuntu
 install-deps-ubuntu:
-	sudo apt install -y protobuf-compiler libgmp-dev cmake libssl-dev
+	sudo apt install -y protobuf-compiler libgmp-dev cmake libssl-dev netcat
 
 .PHONY: install-deps-mcl
 install-deps-mcl:
