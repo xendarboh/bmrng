@@ -24,6 +24,12 @@ build: init
 	cd go/trellis/cmd/client && go install && go build
 	cd go/trellis/cmd/coordinator && go install && go build
 	cd go/0kn/cmd/xtrellis && go install && go build
+
+.PHONY: test
+test: build-commands
+	go test ./go/0kn/...
+	go test -skip 'TestMarshalZero|TestKeyExchange' ./go/trellis/...
+
 .PHONY: clean
 clean:
 	git clean -X -f
