@@ -14,17 +14,16 @@ install-deps-mcl:
 init:
 	./scripts/go-workspace-init.sh
 
-
-.PHONY: build-commands
-build-commands: init
-	( cd go/trellis/cmd/server && go install && go build )
-	( cd go/trellis/cmd/client && go install && go build )
-	( cd go/trellis/cmd/coordinator && go install && go build )
-	( cd go/0kn/cmd/xtrellis && go install && go build )
 .PHONY: protobuf
 protobuf:
 	cd api && buf generate
 
+.PHONY: build
+build: init
+	cd go/trellis/cmd/server && go install && go build
+	cd go/trellis/cmd/client && go install && go build
+	cd go/trellis/cmd/coordinator && go install && go build
+	cd go/0kn/cmd/xtrellis && go install && go build
 .PHONY: clean
 clean:
 	git clean -X -f
