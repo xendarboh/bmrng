@@ -15,16 +15,20 @@ The basic structure of this project:
 
 ```
 .
-├── api/                       # Protocol Buffers
-├── docs/                      # Documentation
-├── go/                        # Go Modules
-│   ├── 0kn/                   # 0KN; integrated launcher, libs
-│   └── trellis/               # Trellis
+├── api/                            # Protocol Buffers
+├── docker/
+│   ├── base
+│   └── remote-network-simulation
+├── docs/                           # Documentation
+├── go/                             # Go Modules
+│   ├── 0kn/                        # 0KN; integrated launcher, libs
+│   └── trellis/                    # Trellis
 └── scripts/
-    ├── go-workspace-init.sh   # init go workspace for local dev
-    ├── test-gateway-ci.sh     # full gateway test
-    ├── test-gateway-io.sh     # test gateway I/O
-    └── test-gateway-pipe.sh   # test gateway pipe
+    ├── go-workspace-init.sh        # init go workspace for local dev
+    ├── simulate-remote-network.sh  # run remote network simulation
+    ├── test-gateway-ci.sh          # full gateway test
+    ├── test-gateway-io.sh          # test gateway I/O
+    └── test-gateway-pipe.sh        # test gateway pipe
 ```
 
 ### Prerequisites
