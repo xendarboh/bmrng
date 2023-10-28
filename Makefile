@@ -6,6 +6,10 @@ install-deps-osx:
 install-deps-ubuntu:
 	sudo apt install -y protobuf-compiler libgmp-dev cmake libssl-dev
 
+.PHONY: install-deps-mcl
+install-deps-mcl:
+	./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh
+
 .PHONY: init
 init:
 	./scripts/go-workspace-init.sh
@@ -15,12 +19,6 @@ gen-proto:
 	@echo "Generating protobuf files"
 	(cd api && buf generate)
 	@echo "Generating protobuf done."
-
-.PHONY: build-mcl
-build-mcl:
-	@echo "Building MCL..."
-	./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh
-	@echo "Building MCL done."
 
 .PHONY: build-commands
 build-commands: init
