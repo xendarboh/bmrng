@@ -48,7 +48,7 @@ Utilities used by test scripts:
 Prepare go workspace:
 
 ```sh
-./scripts/go-workspace-init.sh
+make init
 ```
 
 (Optional) Generate code from Protocol Buffers:
@@ -57,16 +57,21 @@ Prepare go workspace:
 make protobuf
 ```
 
-Build commands:
+Build:
 
 ```sh
-make build-commands
+make build
+```
+
+Test:
+
+```sh
+make test
 ```
 
 ### E2E Tests
 
 #### Full Automated Test
-
 
 ```sh
 ./scripts/test-gateway-ci.sh
