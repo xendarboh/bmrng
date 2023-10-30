@@ -15,16 +15,20 @@ The basic structure of this project:
 
 ```
 .
-├── api/                       # Protocol Buffers
-├── docs/                      # Documentation
-├── go/                        # Go Modules
-│   ├── 0kn/                   # 0KN; integrated launcher, libs
-│   └── trellis/               # Trellis
+├── api/                            # Protocol Buffers
+├── docker/
+│   ├── base
+│   └── remote-network-simulation
+├── docs/                           # Documentation
+├── go/                             # Go Modules
+│   ├── 0kn/                        # 0KN; integrated launcher, libs
+│   └── trellis/                    # Trellis
 └── scripts/
-    ├── go-workspace-init.sh   # init go workspace for local dev
-    ├── test-gateway-ci.sh     # full gateway test
-    ├── test-gateway-io.sh     # test gateway I/O
-    └── test-gateway-pipe.sh   # test gateway pipe
+    ├── go-workspace-init.sh        # init go workspace for local dev
+    ├── simulate-remote-network.sh  # run remote network simulation
+    ├── test-gateway-ci.sh          # full gateway test
+    ├── test-gateway-io.sh          # test gateway I/O
+    └── test-gateway-pipe.sh        # test gateway pipe
 ```
 
 ### Prerequisites
@@ -48,25 +52,30 @@ Utilities used by test scripts:
 Prepare go workspace:
 
 ```sh
-./scripts/go-workspace-init.sh
+make init
 ```
 
 (Optional) Generate code from Protocol Buffers:
 
 ```sh
-make gen-proto
+make protobuf
 ```
 
-Build commands:
+Build:
 
 ```sh
-make build-commands
+make build
+```
+
+Test:
+
+```sh
+make test
 ```
 
 ### E2E Tests
 
 #### Full Automated Test
-
 
 ```sh
 ./scripts/test-gateway-ci.sh
