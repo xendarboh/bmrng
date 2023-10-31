@@ -1,0 +1,17 @@
+{
+  "bootstrap-sha": "cda8bc454d5077b7033ddd823d9a292a8b2e34f5",
+  "plugins": ["sentence-case"],
+  "release-as": "0.1.0",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "draft": true,
+
+  "packages": {
+    "go/0kn": {
+      "release-type": "go"
+    },
+    "go/trellis": {
+      "release-type": "go"
+    }
+  }
+}
