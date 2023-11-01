@@ -1,0 +1,16 @@
+{
+  "bootstrap-sha": "f471f7d6aa3eb26fd7612f55b5e0c1de6a5ce0f7",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "draft": true,
+  "group-pull-request-title-pattern": "chore: release ${version}",
+  "plugins": ["sentence-case"],
+  "prerelease": true,
+
+  "packages": {
+    ".": {
+      "release-as": "0.0.1",
+      "release-type": "go"
+    }
+  }
+}
