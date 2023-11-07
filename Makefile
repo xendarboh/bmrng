@@ -1,3 +1,17 @@
+.PHONY: build
+build: init
+	cd go/trellis/cmd/server      && go build
+	cd go/trellis/cmd/client      && go build
+	cd go/trellis/cmd/coordinator && go build
+	cd go/0kn/cmd/xtrellis        && go build
+
+.PHONY: install
+install: init
+	cd go/trellis/cmd/server      && go install
+	cd go/trellis/cmd/client      && go install
+	cd go/trellis/cmd/coordinator && go install
+	cd go/0kn/cmd/xtrellis        && go install
+
 .PHONY: install-deps-osx
 install-deps-osx:
 	brew install protobuf gmp cmake openssl
@@ -17,13 +31,6 @@ init:
 .PHONY: protobuf
 protobuf:
 	cd api && buf generate
-
-.PHONY: build
-build: init
-	cd go/trellis/cmd/server && go install && go build
-	cd go/trellis/cmd/client && go install && go build
-	cd go/trellis/cmd/coordinator && go install && go build
-	cd go/0kn/cmd/xtrellis && go install && go build
 
 .PHONY: test
 test: build-commands
