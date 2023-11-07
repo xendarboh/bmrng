@@ -21,9 +21,6 @@ COPY --chown=${SSHUSER}:${SSHUSER} *.sh /tmp/
 
 # setup trellis expectations for config and binary locations
 RUN mkdir -p /home/${SSHUSER}/go/bin \
-  && ln -s \
-    /src/go/trellis/cmd/server/server \
-   /home/${SSHUSER}/go/bin/ \
   && chown -R ${SSHUSER}:${SSHUSER} /home/${SSHUSER}/go
 
 EXPOSE 22

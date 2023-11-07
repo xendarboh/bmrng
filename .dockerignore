@@ -1,6 +1,5 @@
 .env
 .git
-docker/
 
 api/gen
 

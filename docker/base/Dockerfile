@@ -78,24 +78,12 @@ RUN ./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh \
 
 COPY . .
 
-# setup go workspace
-RUN ./scripts/go-workspace-init.sh
-
-# generate code from protocol buffer files
-RUN cd api && buf generate
-
-# build trellis; server, client, coordinator
-RUN true \
-  && cd go/trellis/cmd/server \
-    && go install \
-    && go build \
-  && cd ../client \
-    && go install \
-    && go build \
-  && cd ../coordinator \
-    && go install \
-    && go build
-
-RUN cd go/0kn/cmd/xtrellis \
-  && go install \
-  && go build
+RUN \
+  # go install to /usr/local/bin
+  go env -w GOBIN=/usr/local/bin \
+  # setup go workspace
+  && make init \
+  # generate code from protocol buffer files
+  && make protobuf \
+  # build and install binaries
+  && make install
