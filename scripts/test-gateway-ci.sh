@@ -2,7 +2,6 @@
 
 set -ex
 
-cd go/0kn/cmd/xtrellis
 xtrellis \
   coordinator \
   mixnet \
@@ -10,7 +9,6 @@ xtrellis \
   --debug \
   ${@} \
   &
-cd -
 
 xtrellis_pid=$!
 
