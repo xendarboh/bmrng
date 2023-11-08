@@ -1,16 +1,10 @@
 .PHONY: build
 build: init
-	cd go/trellis/cmd/server      && go build
-	cd go/trellis/cmd/client      && go build
-	cd go/trellis/cmd/coordinator && go build
-	cd go/0kn/cmd/xtrellis        && go build
+	cd go/0kn/cmd/xtrellis && go build
 
 .PHONY: install
 install: init
-	cd go/trellis/cmd/server      && go install
-	cd go/trellis/cmd/client      && go install
-	cd go/trellis/cmd/coordinator && go install
-	cd go/0kn/cmd/xtrellis        && go install
+	cd go/0kn/cmd/xtrellis && go install
 
 .PHONY: install-deps-osx
 install-deps-osx:
