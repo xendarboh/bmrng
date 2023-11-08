@@ -73,6 +73,12 @@ Test:
 make test
 ```
 
+### Configure
+
+#### Environment Variables
+
+- `_0KN_WORKDIR` runtime working directory; default = `~/.0KN`
+
 ### E2E Tests
 
 #### Full Automated Test

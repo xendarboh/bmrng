@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 
 	arg "github.com/alexflint/go-arg"
 
@@ -80,6 +81,39 @@ func LaunchClient(args ArgsClient) {
 	network.RunServer(nil, clientRunner, clients, addr)
 }
 
+// set the working directory from env var and change to the directory
+func setWorkingDirectory() {
+	// get working directory from env var, ensure set for children processes
+	workingDir := os.Getenv("_0KN_WORKDIR")
+	if workingDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			panic("Error getting user's home directory: " + err.Error())
+		}
+		defaultDir := filepath.Join(homeDir, ".0KN")
+
+		log.Println("Env _0KN_WORKDIR not set, using default", defaultDir)
+		workingDir = defaultDir
+		os.Setenv("_0KN_WORKDIR", workingDir)
+	}
+
+	// create working directory if it does not exist
+	subDirs := []string{
+		"certificates",
+	}
+	for _, d := range subDirs {
+		dir := workingDir + "/" + d
+		if err := os.MkdirAll(dir, os.FileMode(0700)); err != nil {
+			panic("Failed to create directory: " + dir + "; " + err.Error())
+		}
+	}
+
+	// change to working directory
+	if err := os.Chdir(workingDir); err != nil {
+		panic("Failed to change the working directory: " + err.Error())
+	}
+}
+
 func main() {
 	var args Args
 	argParser := arg.MustParse(&args)
@@ -87,14 +121,7 @@ func main() {
 	utils.SetDebugLogEnabled(args.Debug)
 	utils.SetDebugLogCallerEnabled(args.DebugCaller)
 
-	////////////////////////////////////////////////////////////////////////
-	// change current working directory for trellis hardcoded paths TODO
-	////////////////////////////////////////////////////////////////////////
-	trellisCoordinatorDirectory := "../../../trellis/cmd/coordinator/"
-	if err := os.Chdir(trellisCoordinatorDirectory); err != nil {
-		log.Println("Failed to change the working directory:", err)
-		return
-	}
+	setWorkingDirectory()
 
 	switch {
 	case args.Coordinator != nil:
