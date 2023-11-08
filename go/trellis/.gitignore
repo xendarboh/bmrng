@@ -9,12 +9,9 @@ cmd/coordinator/keys.json
 cmd/coordinator/messages.json
 cmd/coordinator/res.json
 cmd/coordinator/res.json.csv
-cmd/certificates/*.pem
-cmd/certificates/*.key
 coordinator/*.pprof
 coordinator/*.prof
 cmd/*/*.pprof
-cmd/experiments/*.list
 cmd/*/*.log
 errors/*.log
 cmd/testnet2/testnet2
