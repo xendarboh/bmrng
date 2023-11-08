@@ -81,7 +81,7 @@ func CreateCertificate(addr string) ([]byte, []byte) {
 
 	for _, c := range cmds {
 		cmd := exec.Command(c[0], c[1:]...)
-		cmd.Dir = "../certificates"
+		cmd.Dir = "certificates"
 		if err := cmd.Run(); err != nil {
 			panic(err)
 		}
@@ -108,7 +108,7 @@ func CreateServerWithCertificate(addr string, id int64, cert, key []byte) *Serve
 }
 
 func GetCertificate(addr string) []byte {
-	cert, err := ioutil.ReadFile(fmt.Sprintf("../certificates/cert%s.pem", addr))
+	cert, err := ioutil.ReadFile(fmt.Sprintf("certificates/cert%s.pem", addr))
 	if err != nil {
 		panic(err)
 	}
@@ -116,7 +116,7 @@ func GetCertificate(addr string) []byte {
 }
 
 func GetCertificateKey(addr string) []byte {
-	key, err := ioutil.ReadFile(fmt.Sprintf("../certificates/key%s.pem", addr))
+	key, err := ioutil.ReadFile(fmt.Sprintf("certificates/key%s.pem", addr))
 	if err != nil {
 		panic(err)
 	}

@@ -42,7 +42,7 @@ var args struct {
 	ClientFile       string `default:"clients.json"`
 	KeyFile          string `default:"keys.json"`
 	MessageFile      string `default:"messages.json"`
-	Ips              string `default:"../experiments/ip.list"`
+	Ips              string `default:"ip.list"`
 	Notes            string `default:""`
 	OutFile          string `default:"res.json"`
 	NoDummies        bool   `default:"True"`
