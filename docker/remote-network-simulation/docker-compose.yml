@@ -40,4 +40,4 @@ services:
       service: server-0
     container_name: coordinator
     hostname: coordinator
-    command: /tmp/coordinator-start.sh
+    command: docker/remote-network-simulation/coordinator-start.sh

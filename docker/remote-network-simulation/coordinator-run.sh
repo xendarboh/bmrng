@@ -4,7 +4,6 @@ set -ex
 
 export _0KN_WORKDIR=~/.0KN
 mkdir -p ${_0KN_WORKDIR}
-cd ${_0KN_WORKDIR} # only required for coordinator
 
 # create hosts file, generate config from it, launch coordinator using it
 
@@ -13,4 +12,4 @@ hostsfile="${_0KN_WORKDIR}/ip.list"
 
 echo -e "server-0\nserver-1\nserver-2" > ${hostsfile}
 xtrellis coordinator config ${args} --hostsfile ${hostsfile}
-coordinator ${args} --runtype 2
+xtrellis coordinator experiment ${args} --networktype 2
