@@ -6,6 +6,10 @@ build: init
 install: init
 	cd go/0kn/cmd/xtrellis && go install
 
+.PHONY: uninstall
+uninstall:
+	rm -f $(shell go env GOBIN)/xtrellis
+
 .PHONY: install-deps-osx
 install-deps-osx:
 	brew install protobuf gmp cmake openssl
@@ -34,6 +38,9 @@ test: build-commands
 .PHONY: clean
 clean:
 	git clean -X -f
+
+.PHONY: very-clean
+very-clean: clean uninstall
 
 .PHONY: docker-images
 docker-images:
