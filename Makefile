@@ -30,10 +30,16 @@ init:
 protobuf:
 	cd api && buf generate
 
-.PHONY: test
-test:
+.PHONY: test-go-0kn
+test-go-0kn:
 	go test ./go/0kn/...
+
+.PHONY: test-go-trellis
+test-go-trellis:
 	go test -skip 'TestMarshalZero|TestKeyExchange' ./go/trellis/...
+
+.PHONY: test
+test: test-go-0kn test-go-trellis
 
 .PHONY: clean
 clean:
