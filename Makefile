@@ -31,7 +31,7 @@ protobuf:
 	cd api && buf generate
 
 .PHONY: test
-test: build-commands
+test:
 	go test ./go/0kn/...
 	go test -skip 'TestMarshalZero|TestKeyExchange' ./go/trellis/...
 
