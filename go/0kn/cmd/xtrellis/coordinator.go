@@ -10,8 +10,8 @@ import (
 
 	arg "github.com/alexflint/go-arg"
 
-	"github.com/31333337/bmrng/go/0kn/pkg/utils"
 	"github.com/31333337/bmrng/go/0kn/pkg/gateway"
+	"github.com/31333337/bmrng/go/0kn/pkg/utils"
 	"github.com/31333337/bmrng/go/trellis/config"
 	"github.com/31333337/bmrng/go/trellis/coordinator"
 )
@@ -22,6 +22,9 @@ const (
 
 	// run local network in separate processes on the same machine
 	NETWORK_TYPE_LOCAL
+
+	// run network on remote hosts
+	NETWORK_TYPE_REMOTE
 )
 
 func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
@@ -109,6 +112,14 @@ func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {
 			}
 		}
 		net = coordinator.NewLocalNetwork(serverConfigs, groupConfigs, clientConfigs)
+
+	case NETWORK_TYPE_REMOTE: // run on remote hosts
+		clientFile := args.ClientFile
+		if args.NumClientServers == 0 {
+			clientFile = ""
+		}
+		net = coordinator.NewRemoteNetwork(args.ServerFile, args.GroupFile, clientFile)
+		net.SetKill()
 	}
 
 	return net
@@ -116,7 +127,7 @@ func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {
 
 func runExperiment(args ArgsCoordinator) {
 	net := setupNetwork(args)
-	if args.NetworkType == NETWORK_TYPE_LOCAL {
+	if args.NetworkType == NETWORK_TYPE_LOCAL || args.NetworkType == NETWORK_TYPE_REMOTE {
 		defer net.KillAll()
 	}
 

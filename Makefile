@@ -1,3 +1,15 @@
+.PHONY: build
+build: init
+	cd go/0kn/cmd/xtrellis && go build
+
+.PHONY: install
+install: init
+	cd go/0kn/cmd/xtrellis && go install
+
+.PHONY: uninstall
+uninstall:
+	rm -f $(shell go env GOBIN)/xtrellis
+
 .PHONY: install-deps-osx
 install-deps-osx:
 	brew install protobuf gmp cmake openssl
@@ -18,21 +30,23 @@ init:
 protobuf:
 	cd api && buf generate
 
-.PHONY: build
-build: init
-	cd go/trellis/cmd/server && go install && go build
-	cd go/trellis/cmd/client && go install && go build
-	cd go/trellis/cmd/coordinator && go install && go build
-	cd go/0kn/cmd/xtrellis && go install && go build
+.PHONY: test-go-0kn
+test-go-0kn:
+	go test ./go/0kn/...
+
+.PHONY: test-go-trellis
+test-go-trellis:
+	go test -skip 'TestMarshalZero|TestKeyExchange' ./go/trellis/...
 
 .PHONY: test
-test: build-commands
-	go test ./go/0kn/...
-	go test -skip 'TestMarshalZero|TestKeyExchange' ./go/trellis/...
+test: test-go-0kn test-go-trellis
 
 .PHONY: clean
 clean:
 	git clean -X -f
+
+.PHONY: very-clean
+very-clean: clean uninstall
 
 .PHONY: docker-images
 docker-images:

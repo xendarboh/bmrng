@@ -13,18 +13,8 @@ RUN mkdir /var/run/sshd
 ARG SSHUSER=ec2-user
 RUN useradd -m -U -s /bin/bash ${SSHUSER}
 
-# set permissions for user to exeucte (files are generated there)
+# set permissions for user to execute (files are generated there)
 RUN chown -R ${SSHUSER}:${SSHUSER} /src
-
-# avoid base image rebuild for faster dev
-COPY --chown=${SSHUSER}:${SSHUSER} *.sh /tmp/
-
-# setup trellis expectations for config and binary locations
-RUN mkdir -p /home/${SSHUSER}/go/bin \
-  && ln -s \
-    /src/go/trellis/cmd/server/server \
-   /home/${SSHUSER}/go/bin/ \
-  && chown -R ${SSHUSER}:${SSHUSER} /home/${SSHUSER}/go
 
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]

@@ -115,9 +115,9 @@ func NewLocalNetwork(serverConfigs map[int64]*config.Server, groupConfigs map[in
 	if err != nil {
 		panic(err)
 	}
-	// spawn each server process - assume we are in cmd/coordinator
+	// spawn each server process
 	for _, s := range c.ServerConfigs {
-		cmd := exec.Command("../server/server", "../coordinator/servers.json", "../coordinator/groups.json", s.Address)
+		cmd := exec.Command("xtrellis", "server", "--addr", s.Address)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		err := cmd.Start()
@@ -145,7 +145,7 @@ func NewLocalNetwork(serverConfigs map[int64]*config.Server, groupConfigs map[in
 		}
 		// spawn client processes
 		for _, s := range c.ClientConfigs {
-			cmd := exec.Command("../client/client", "../coordinator/servers.json", "../coordinator/groups.json", "../coordinator/clients.json", s.Address)
+			cmd := exec.Command("xtrellis", "client", "--addr", s.Address)
 			cmd.Stderr = os.Stderr
 			cmd.Stdout = os.Stdout
 			err := cmd.Start()

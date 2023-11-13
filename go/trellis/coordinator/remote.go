@@ -15,12 +15,16 @@ const ServerProcessName = "server"
 const ClientProcessName = "client"
 const waitTime = 10 * time.Second
 
+// server hosts receive configuration files from coordinator,
+// store them in this directory, then access them later
+const confDir = "/tmp"
+
 func TransferFileToAllServers(servers map[int64]*config.Server, fn string) bool {
 	done := make(chan bool)
 	for _, s := range servers {
 		go func(s *config.Server) {
 			cmd := exec.Command("scp", "-i", "~/.ssh/lkey", "-o", "StrictHostKeyChecking=no", fn,
-				fmt.Sprintf("ec2-user@%s:~/go/bin/%s", config.Host(s.Address), fn))
+				fmt.Sprintf("ec2-user@%s:%s/%s", config.Host(s.Address), confDir, fn))
 			cmd.Stderr = os.Stderr
 			cmd.Stdout = os.Stdout
 			// log.Printf("Running %v", cmd)
@@ -48,7 +52,7 @@ func KillRemoteServers(servers map[int64]*config.Server, processName string) {
 		go func(s *config.Server) {
 			cmd := exec.Command("ssh", "-i", "~/.ssh/lkey", "-o", "StrictHostKeyChecking=no",
 				fmt.Sprintf("ec2-user@%s", config.Host(s.Address)),
-				fmt.Sprintf("pkill %s", processName))
+				fmt.Sprintf("pkill xtrellis"))
 			cmd.Stderr = os.Stderr
 			cmd.Stdout = os.Stdout
 			cmd.Run()
@@ -69,7 +73,7 @@ func StartRemoteServers(servers map[int64]*config.Server, processName, serverFil
 		go func(s *config.Server) {
 			cmd := exec.Command("ssh", "-i", "~/.ssh/lkey", "-o", "StrictHostKeyChecking=no",
 				fmt.Sprintf("ec2-user@%s", config.Host(s.Address)),
-				fmt.Sprintf("~/go/bin/%s ~/go/bin/%s ~/go/bin/%s %s", processName, serverFile, groupFile, s.Address))
+				fmt.Sprintf("xtrellis %s --serverfile %s/%s --groupfile %s/%s --addr %s", processName, confDir, serverFile, confDir, groupFile, s.Address))
 			cmd.Stderr = os.Stderr
 			cmd.Stdout = os.Stdout
 			// log.Printf("Running %v", cmd)

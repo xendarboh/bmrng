@@ -2,15 +2,13 @@
 
 set -ex
 
-cd go/0kn/cmd/xtrellis
-./xtrellis \
+xtrellis \
   coordinator \
   mixnet \
   --gatewayenable \
   --debug \
   ${@} \
   &
-cd -
 
 xtrellis_pid=$!
 

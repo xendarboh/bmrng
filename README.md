@@ -67,11 +67,38 @@ Build:
 make build
 ```
 
-Test:
+### Test
 
 ```sh
 make test
 ```
+
+### Run
+
+Typical invocation involves sub processes and various config files within a
+working directory so installation is necessary. The following is an example:
+
+```sh
+# build and install executable(s) to directory `go env GOBIN`
+make install
+
+# optional: set working directory; see Environment Variables
+
+# `xtrellis` should now be in your PATH
+xtrellis --help
+
+# run complete gateway test run by ci
+./scripts/test-gateway-ci.sh
+
+# remove installed executable(s)
+make uninstall
+```
+
+### Configure
+
+#### Environment Variables
+
+- `_0KN_WORKDIR` runtime working directory; default = `~/.0KN`
 
 ### E2E Tests
 
@@ -86,8 +113,7 @@ make test
 1. Run a coordinated local mix-net with gateway enabled, for example:
 
    ```sh
-   cd go/0kn/cmd/xtrellis
-   ./xtrellis coordinator mixnet --gatewayenable --debug
+   xtrellis coordinator mixnet --gatewayenable --debug
    ```
 
    `CTRL-C` to exit.
@@ -109,9 +135,28 @@ make test
 #### With Docker Compose
 
 ```sh
+cd docker/base
+
 # build and run container for gateway test
-docker compose --profile test-gateway up --build
+docker compose --profile test-gateway up --build --abort-on-container-exit
 
 # remove container
 docker compose --profile test-gateway down
+```
+
+### Local Remote Network Simulator
+
+```sh
+# build docker images
+make docker-images
+
+# run remote network simulator
+./scripts/simulate-remote-network.sh
+
+# optional: ssh into coordinator's container
+cd docker/remote-network-simulation
+./coordinator-ssh.sh
+
+# remove containers
+make docker-clean
 ```

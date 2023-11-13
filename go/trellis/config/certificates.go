@@ -54,12 +54,39 @@ func CreateServerWithExisting(addr string, id int64, servers map[int64]*Server) 
 
 func CreateCertificate(addr string) ([]byte, []byte) {
 	ip := IP(addr)
-	cmd := exec.Command("sh", "../certificates/certificate.sh", ip, addr)
-	cmd.Dir = "../certificates"
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
+
+	cmds := [][]string{
+		{
+			"openssl",
+			"ecparam",
+			"-genkey",
+			"-name",
+			"prime256v1",
+			"-out", fmt.Sprintf("key%s.pem", addr),
+		},
+		{
+			"openssl",
+			"req",
+			"-x509",
+			"-new",
+			"-nodes",
+			"-subj", fmt.Sprintf("/CN=%s", addr),
+			"-addext", fmt.Sprintf("subjectAltName = IP.1:%s", ip),
+			"-key", fmt.Sprintf("key%s.pem", addr),
+			"-out", fmt.Sprintf("cert%s.pem", addr),
+			"-sha256",
+			"-days", "365",
+		},
 	}
+
+	for _, c := range cmds {
+		cmd := exec.Command(c[0], c[1:]...)
+		cmd.Dir = "certificates"
+		if err := cmd.Run(); err != nil {
+			panic(err)
+		}
+	}
+
 	return GetCertificate(addr), GetCertificateKey(addr)
 }
 
@@ -81,7 +108,7 @@ func CreateServerWithCertificate(addr string, id int64, cert, key []byte) *Serve
 }
 
 func GetCertificate(addr string) []byte {
-	cert, err := ioutil.ReadFile(fmt.Sprintf("../certificates/cert%s.pem", addr))
+	cert, err := ioutil.ReadFile(fmt.Sprintf("certificates/cert%s.pem", addr))
 	if err != nil {
 		panic(err)
 	}
@@ -89,7 +116,7 @@ func GetCertificate(addr string) []byte {
 }
 
 func GetCertificateKey(addr string) []byte {
-	key, err := ioutil.ReadFile(fmt.Sprintf("../certificates/key%s.pem", addr))
+	key, err := ioutil.ReadFile(fmt.Sprintf("certificates/key%s.pem", addr))
 	if err != nil {
 		panic(err)
 	}

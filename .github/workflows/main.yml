@@ -28,10 +28,10 @@ jobs:
       run: docker compose --project-directory docker/base/ --profile build build
 
     - name: Run Go Tests for 0kn
-      run: docker run 0kn/trellis:latest go test ./go/0kn/...
+      run: docker run 0kn/trellis:latest make test-go-0kn
 
     - name: Run Go Tests for trellis
-      run: docker run 0kn/trellis:latest go test -skip 'TestMarshalZero|TestKeyExchange' ./go/trellis/...
+      run: docker run 0kn/trellis:latest make test-go-trellis
 
     - name: Docker Compose Test Gateway
       run: |

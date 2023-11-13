@@ -1,6 +1,5 @@
 .env
 .git
-docker/
 
 api/gen
 
@@ -8,8 +7,6 @@ go/0kn/cmd/xtrellis/xtrellis
 
 go/trellis/cmd/*/*.log
 go/trellis/cmd/*/*.pprof
-go/trellis/cmd/certificates/*.key
-go/trellis/cmd/certificates/*.pem
 go/trellis/cmd/client/client
 go/trellis/cmd/coordinator/clients.json
 go/trellis/cmd/coordinator/coordinator
@@ -19,7 +16,6 @@ go/trellis/cmd/coordinator/messages.json
 go/trellis/cmd/coordinator/res.json
 go/trellis/cmd/coordinator/res.json.csv
 go/trellis/cmd/coordinator/servers.json
-go/trellis/cmd/experiments/*.list
 go/trellis/cmd/server/server
 go/trellis/cmd/simulation/simulation
 go/trellis/cmd/testnet2/testnet2
