@@ -73,7 +73,12 @@ func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 	}
 
 	if args.BinSize == 0 {
-		args.BinSize = config.BinSize2(args.NumLayers, args.NumServers, args.NumUsers, -args.Overflow)
+		args.BinSize = config.BinSize2(
+			args.NumLayers,
+			args.NumServers,
+			args.NumUsers,
+			-args.Overflow,
+		)
 	}
 
 	if args.LimitSize == 0 {
@@ -98,7 +103,13 @@ func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {
 		net = coordinator.NewInProcessNetwork(args.NumServers, args.NumGroups, args.GroupSize)
 
 	case NETWORK_TYPE_LOCAL: // run in separate process on the same machine
-		serverConfigs, groupConfigs, clientConfigs := coordinator.NewLocalConfig(args.NumServers, args.NumGroups, args.GroupSize, args.NumClientServers, false)
+		serverConfigs, groupConfigs, clientConfigs := coordinator.NewLocalConfig(
+			args.NumServers,
+			args.NumGroups,
+			args.GroupSize,
+			args.NumClientServers,
+			false,
+		)
 		if args.LoadMessages {
 			oldServers, err := config.UnmarshalServersFromFile(args.ServerFile)
 			if err != nil {
@@ -219,7 +230,12 @@ func runMixnet(args ArgsCoordinator) {
 	if args.MessageSize <= int(gateway.GetMaxProtocolSize()) {
 		log.Fatal("Error: MessageSize too small for Gateway packet protocol")
 	}
-	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddrIn, args.GatewayAddrOut)
+	gateway.Init(
+		int64(args.MessageSize),
+		args.GatewayEnable,
+		args.GatewayAddrIn,
+		args.GatewayAddrOut,
+	)
 
 	// setup network
 	net := setupNetwork(args)
@@ -346,7 +362,11 @@ func runConfigGenerator(args ArgsCoordinator) {
 		ids = append(ids, int64(id))
 		if len(hosts) >= args.NumClientServers+args.NumServers {
 			if id < args.NumServers {
-				servers[int64(id)] = config.CreateServerWithExisting(addr+":8000", int64(id), servers)
+				servers[int64(id)] = config.CreateServerWithExisting(
+					addr+":8000",
+					int64(id),
+					servers,
+				)
 			} else if id < args.NumClientServers+args.NumServers {
 				clients[int64(id-args.NumServers)] = config.CreateServerWithExisting(addr+":8900", int64(id-args.NumServers), servers)
 			}
