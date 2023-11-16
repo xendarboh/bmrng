@@ -9,8 +9,17 @@ import (
 	"github.com/31333337/bmrng/go/trellis/server"
 )
 
-// from trellis/cmd/server/
 func LaunchServer(args ArgsServer) {
+	switch {
+	case args.Config != nil:
+		runServerConfigGenerator(args)
+	default:
+		runServer(args)
+	}
+}
+
+// from trellis/cmd/server/
+func runServer(args ArgsServer) {
 	serversFile := args.ServerFile
 	groupsFile := args.GroupFile
 	addr := args.Addr
@@ -35,4 +44,33 @@ func LaunchServer(args ArgsServer) {
 	server.TcpConnections.LaunchAccepts()
 	network.RunServer(h, server, servers, addr)
 	config.Flush()
+}
+
+func runServerConfigGenerator(args ArgsServer) {
+	addr := args.Addr
+	serverPrivateFile := args.Config.ServerPrivateFile
+	serverPublicFile := args.Config.ServerPublicFile
+
+	log.Printf("Creating server config for address %s", addr)
+
+	// create a new server config with a self-signed certificate
+	servers := make(map[int64]*config.Server)
+	id := int64(0)
+	cert, key := config.CreateCertificate(addr)
+	servers[id] = config.CreateServerWithCertificate(addr, id, cert, key)
+
+	// write complete (public and private) server config to file
+	err := config.MarshalServersToFile(serverPrivateFile, servers)
+	if err != nil {
+		log.Fatalf("Could not write private server file %s: %v", serverPrivateFile, err)
+	}
+
+	// write public server config to file
+	servers[id].PrivateKey = nil
+	servers[id].PrivateIdentity = nil
+	servers[id].SignatureKey = nil
+	err = config.MarshalServersToFile(serverPublicFile, servers)
+	if err != nil {
+		log.Fatalf("Could not write public server file %s: %v", serverPublicFile, err)
+	}
 }
