@@ -23,23 +23,51 @@ func runServer(args ArgsServer) {
 	serversFile := args.ServerFile
 	groupsFile := args.GroupFile
 	addr := args.Addr
+	serverPrivateFile := args.ServerPrivateFile
 	errors.Addr = addr
 
 	log.Printf("Launching server with address %s", addr)
 
+	// load public server config for mix-net round
 	servers, err := config.UnmarshalServersFromFile(serversFile)
 	if err != nil {
-		log.Fatalf("Could not read servers file %s", serversFile)
+		log.Fatalf("Could not read servers file %s: %v", serversFile, err)
 	}
+
+	// load private server config
+	serversPrivate, err := config.UnmarshalServersFromFile(serverPrivateFile)
+	if err != nil {
+		log.Fatalf("Could not read private servers file %s: %v", serverPrivateFile, err)
+	}
+
+	// find server id by address in public config
+	id, _ := network.FindConfig(addr, servers)
+	if id < 0 {
+		log.Fatalf("Could not find %s in servers file", addr)
+	}
+
+	// find server config by address in private config
+	_, cfg := network.FindConfig(addr, serversPrivate)
+	if id < 0 {
+		log.Fatalf("Could not find %s in private servers file", addr)
+	}
+
+	// replace public config with private (complete) config
+	servers[id] = cfg
 
 	groups, err := config.UnmarshalGroupsFromFile(groupsFile)
 	if err != nil {
-		log.Fatalf("Could not read group file %s", groupsFile)
+		log.Fatalf("Could not read group file %s: %v", groupsFile, err)
 	}
 
 	// will start in blocked state
 	h := server.NewHandler()
-	server := server.NewServer(&config.Servers{Servers: servers}, &config.Groups{Groups: groups}, h, addr)
+	server := server.NewServer(
+		&config.Servers{Servers: servers},
+		&config.Groups{Groups: groups},
+		h,
+		addr,
+	)
 
 	server.TcpConnections.LaunchAccepts()
 	network.RunServer(h, server, servers, addr)
@@ -48,8 +76,8 @@ func runServer(args ArgsServer) {
 
 func runServerConfigGenerator(args ArgsServer) {
 	addr := args.Addr
-	serverPrivateFile := args.Config.ServerPrivateFile
-	serverPublicFile := args.Config.ServerPublicFile
+	serverPrivateFile := args.ServerPrivateFile
+	serverPublicFile := args.ServerPublicFile
 
 	log.Printf("Creating server config for address %s", addr)
 

@@ -59,14 +59,14 @@ type ArgsCoordinatorMixnet struct {
 type ArgsServer struct {
 	ArgsCommon
 
-	Addr string `default:"localhost:8000"`
+	Addr              string `default:"localhost:8000"`
+	ServerPrivateFile string `default:"server-private.json"`
+	ServerPublicFile  string `default:"server-public.json"`
 
 	Config *ArgsServerConfig `arg:"subcommand:config" help:"generate server configuration"`
 }
 
 type ArgsServerConfig struct {
-	ServerPrivateFile string `default:"server-private.json"`
-	ServerPublicFile  string `default:"server-public.json"`
 }
 
 type ArgsClient struct {
