@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/31333337/bmrng/go/0kn/internal/conf"
 	"github.com/31333337/bmrng/go/trellis/config"
 	"github.com/31333337/bmrng/go/trellis/errors"
 	"github.com/31333337/bmrng/go/trellis/network"
@@ -34,25 +35,26 @@ func runServer(args ArgsServer) {
 		log.Fatalf("Could not read servers file %s: %v", serversFile, err)
 	}
 
-	// load private server config
-	serversPrivate, err := config.UnmarshalServersFromFile(serverPrivateFile)
-	if err != nil {
-		log.Fatalf("Could not read private servers file %s: %v", serverPrivateFile, err)
-	}
-
 	// find server id by address in public config
 	id, _ := network.FindConfig(addr, servers)
 	if id < 0 {
 		log.Fatalf("Could not find %s in servers file", addr)
 	}
 
+	// load private server config
+	serversPrivate, err := config.UnmarshalServersFromFile(serverPrivateFile)
+	if err != nil {
+		log.Fatalf("Could not read private servers file %s: %v", serverPrivateFile, err)
+	}
+
 	// find server config by address in private config
 	_, cfg := network.FindConfig(addr, serversPrivate)
-	if id < 0 {
+	if cfg == nil {
 		log.Fatalf("Could not find %s in private servers file", addr)
 	}
 
 	// replace public config with private (complete) config
+	cfg.Id = id
 	servers[id] = cfg
 
 	groups, err := config.UnmarshalGroupsFromFile(groupsFile)
@@ -76,41 +78,12 @@ func runServer(args ArgsServer) {
 
 func runServerConfigGenerator(args ArgsServer) {
 	addr := args.Addr
-	serverPrivateFile := args.ServerPrivateFile
-	serverPublicFile := args.ServerPublicFile
 
-	var servers map[int64]*config.Server
-
-	log.Printf("Creating server config for address %s", addr)
-
-	// load private server config, if it exists
-	servers, err := config.UnmarshalServersFromFile(serverPrivateFile)
+	err := conf.LocalServerConfigSet(addr, args.ServerPrivateFile, args.ServerPublicFile)
 	if err != nil {
-		servers = make(map[int64]*config.Server)
+		log.Printf("Could not create server config for address %s", addr)
+		log.Fatalf("%v", err)
 	}
 
-	// find server id by address in config, or get next available id
-	id, _ := network.FindConfig(addr, servers)
-	if id < 0 {
-		id = int64(len(servers))
-	}
-
-	// create a new server config with a self-signed certificate
-	cert, key := config.CreateCertificate(addr)
-	servers[id] = config.CreateServerWithCertificate(addr, id, cert, key)
-
-	// write complete (public and private) server config to file
-	if err := config.MarshalServersToFile(serverPrivateFile, servers); err != nil {
-		log.Fatalf("Could not write private server file %s: %v", serverPrivateFile, err)
-	}
-
-	// save public server config to file without private info
-	for id := range servers {
-		servers[id].PrivateKey = nil
-		servers[id].PrivateIdentity = nil
-		servers[id].SignatureKey = nil
-	}
-	if err := config.MarshalServersToFile(serverPublicFile, servers); err != nil {
-		log.Fatalf("Could not write public server file %s: %v", serverPublicFile, err)
-	}
+	log.Printf("Created server config for address %s", addr)
 }
