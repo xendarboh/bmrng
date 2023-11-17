@@ -110,6 +110,14 @@ func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {
 			args.NumClientServers,
 			false,
 		)
+
+		// copy public server config to private servers file
+		// TODO: improve public/private config generation
+		serverPrivateFile := args.ServerPrivateFile
+		if err := config.MarshalServersToFile(serverPrivateFile, serverConfigs); err != nil {
+			log.Fatalf("Could not write private servers file %s: %v", serverPrivateFile, err)
+		}
+
 		if args.LoadMessages {
 			oldServers, err := config.UnmarshalServersFromFile(args.ServerFile)
 			if err != nil {
