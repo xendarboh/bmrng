@@ -79,26 +79,38 @@ func runServerConfigGenerator(args ArgsServer) {
 	serverPrivateFile := args.ServerPrivateFile
 	serverPublicFile := args.ServerPublicFile
 
+	var servers map[int64]*config.Server
+
 	log.Printf("Creating server config for address %s", addr)
 
+	// load private server config, if it exists
+	servers, err := config.UnmarshalServersFromFile(serverPrivateFile)
+	if err != nil {
+		servers = make(map[int64]*config.Server)
+	}
+
+	// find server id by address in config, or get next available id
+	id, _ := network.FindConfig(addr, servers)
+	if id < 0 {
+		id = int64(len(servers))
+	}
+
 	// create a new server config with a self-signed certificate
-	servers := make(map[int64]*config.Server)
-	id := int64(0)
 	cert, key := config.CreateCertificate(addr)
 	servers[id] = config.CreateServerWithCertificate(addr, id, cert, key)
 
 	// write complete (public and private) server config to file
-	err := config.MarshalServersToFile(serverPrivateFile, servers)
-	if err != nil {
+	if err := config.MarshalServersToFile(serverPrivateFile, servers); err != nil {
 		log.Fatalf("Could not write private server file %s: %v", serverPrivateFile, err)
 	}
 
-	// write public server config to file
-	servers[id].PrivateKey = nil
-	servers[id].PrivateIdentity = nil
-	servers[id].SignatureKey = nil
-	err = config.MarshalServersToFile(serverPublicFile, servers)
-	if err != nil {
+	// save public server config to file without private info
+	for id := range servers {
+		servers[id].PrivateKey = nil
+		servers[id].PrivateIdentity = nil
+		servers[id].SignatureKey = nil
+	}
+	if err := config.MarshalServersToFile(serverPublicFile, servers); err != nil {
 		log.Fatalf("Could not write public server file %s: %v", serverPublicFile, err)
 	}
 }
