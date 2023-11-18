@@ -10,6 +10,6 @@ mkdir -p ${_0KN_WORKDIR}
 args='--numservers 3 --numgroups 3 --numusers 10 --groupsize 3 --numlayers 10'
 hostsfile="${_0KN_WORKDIR}/ip.list"
 
-echo -e "server-0\nserver-1\nserver-2" > ${hostsfile}
+echo -e "server-0:8000\nserver-1:8000\nserver-2:8000" > ${hostsfile}
 xtrellis coordinator config ${args} --hostsfile ${hostsfile}
 xtrellis coordinator experiment ${args} --networktype 2
