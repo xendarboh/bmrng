@@ -36,7 +36,7 @@ func LocalServerConfigSet(addr string, serverPrivateFile string, serverPublicFil
 
 	// save public server config to file without private info
 	for id := range servers {
-		servers[id].PrivateKey = nil
+		// servers[id].PrivateKey = nil // !!! TODO/WIP: client server fails if not public
 		servers[id].PrivateIdentity = nil
 		servers[id].SignatureKey = nil
 	}

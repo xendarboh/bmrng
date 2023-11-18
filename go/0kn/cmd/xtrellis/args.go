@@ -51,7 +51,7 @@ type ArgsCoordinatorCommon struct {
 }
 
 type ArgsCoordinatorConfig struct {
-	HostsFile string `default:"hosts.list" help:"file with list of remote hosts"`
+	HostsFile string `default:"hosts.list" help:"file with list of remote hosts; format <hostname or ip>:<port>"`
 }
 
 type ArgsCoordinatorExperiment struct {

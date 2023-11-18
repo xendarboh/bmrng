@@ -43,6 +43,10 @@ func setWorkingDirectory() {
 	}
 }
 
+func getWorkingDirectory() string {
+	return os.Getenv("_0KN_WORKDIR")
+}
+
 func main() {
 	var args Args
 	argParser := arg.MustParse(&args)

@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -359,43 +361,51 @@ func runMixnet(args ArgsCoordinator) {
 	}
 }
 
+// TODO: client servers
 func runConfigGenerator(args ArgsCoordinator) {
 	hosts := readHostsfile(args.Config.HostsFile)
 
-	servers := make(map[int64]*config.Server)
-	clients := make(map[int64]*config.Server)
-
-	ids := make([]int64, 0)
-	for id, addr := range hosts {
-		ids = append(ids, int64(id))
-		if len(hosts) >= args.NumClientServers+args.NumServers {
-			if id < args.NumServers {
-				servers[int64(id)] = config.CreateServerWithExisting(
-					addr+":8000",
-					int64(id),
-					servers,
-				)
-			} else if id < args.NumClientServers+args.NumServers {
-				clients[int64(id-args.NumServers)] = config.CreateServerWithExisting(addr+":8900", int64(id-args.NumServers), servers)
-			}
-		} else {
-			if id < args.NumServers {
-				servers[int64(id)] = config.CreateServerWithExisting(addr+":8000", int64(id), servers)
-			}
-			// create on same servers
-			if id < args.NumClientServers {
-				clients[int64(id)] = config.CreateServerWithExisting(addr+":8900", int64(id), servers)
-			}
+	// hosts --> servers
+	remoteServers := make(map[int64]*config.Server)
+	for i, host := range hosts {
+		remoteServers[int64(i)] = &config.Server{
+			Address: host,
 		}
 	}
-	ids = ids[:args.NumServers]
 
-	groups := config.CreateSeparateGroupsWithSize(args.NumGroups, args.GroupSize, ids)
+	// run remote commands on each host to create their own private server config
+	var wg sync.WaitGroup
+	for _, s := range remoteServers {
+		wg.Add(1)
+		go func(s *config.Server) {
+			defer wg.Done()
+			cmd := fmt.Sprintf("xtrellis server config --addr %s", s.Address)
+			if !coordinator.RunRemoteCommandOnEach(map[int64]*config.Server{int64(0): s}, cmd) {
+				log.Fatalf("Could not run command `%s` on host %s", cmd, s.Address)
+			}
+		}(s)
+	}
+	wg.Wait()
 
-	if args.NumClientServers > 0 {
-		err := config.MarshalServersToFile(args.ClientFile, clients)
+	// retrieve public server config from each host
+	// TODO: clean /tmp
+	fn := getWorkingDirectory() + "/" + args.ServerPublicFile
+	if !coordinator.TransferFileFromAllServers(remoteServers, fn, "/tmp") {
+		log.Fatalf("Could not transfer file %s from all servers", fn)
+	}
+
+	// merge public server config from each host
+	servers := make(map[int64]*config.Server)
+	ids := make([]int64, 0)
+	for id, host := range hosts {
+		ids = append(ids, int64(id))
+		s, err := config.UnmarshalServersFromFile("/tmp/" + host + "-" + args.ServerPublicFile)
 		if err != nil {
-			log.Fatalf("Could not write clients file %s", args.ClientFile)
+			log.Fatalf("Could not read servers file %v", err)
+		}
+		for _, s2 := range s {
+			s2.Id = int64(id)
+			servers[int64(id)] = s2
 		}
 	}
 
@@ -404,6 +414,7 @@ func runConfigGenerator(args ArgsCoordinator) {
 		log.Fatalf("Could not write servers file %s", args.ServerFile)
 	}
 
+	groups := config.CreateSeparateGroupsWithSize(args.NumGroups, args.GroupSize, ids)
 	err = config.MarshalGroupsToFile(args.GroupFile, groups)
 	if err != nil {
 		log.Fatalf("Could not write group file %s", args.GroupFile)
