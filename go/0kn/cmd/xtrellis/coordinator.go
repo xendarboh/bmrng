@@ -361,11 +361,14 @@ func runMixnet(args ArgsCoordinator) {
 	}
 }
 
+// Note: This is a temporary solution within the evolving context of trellis
+// simulator for servers to generate their own config files and only share
+// the public aspects
 // TODO: client servers
 func runConfigGenerator(args ArgsCoordinator) {
 	hosts := readHostsfile(args.Config.HostsFile)
 
-	// hosts --> servers
+	// hosts --> servers (to match trellis function expectations)
 	remoteServers := make(map[int64]*config.Server)
 	for i, host := range hosts {
 		remoteServers[int64(i)] = &config.Server{
