@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"time"
 
 	"github.com/31333337/bmrng/go/trellis/config"
@@ -28,6 +29,35 @@ func TransferFileToAllServers(servers map[int64]*config.Server, fn string) bool 
 			cmd.Stderr = os.Stderr
 			cmd.Stdout = os.Stdout
 			// log.Printf("Running %v", cmd)
+			err := cmd.Run()
+			if err != nil {
+				log.Print(err)
+				done <- false
+			} else {
+				done <- true
+			}
+		}(s)
+	}
+	for range servers {
+		b := <-done
+		if !b {
+			return false
+		}
+	}
+	return true
+}
+
+func TransferFileFromAllServers(servers map[int64]*config.Server, fn string, dirLocal string) bool {
+	done := make(chan bool)
+	for _, s := range servers {
+		go func(s *config.Server) {
+			cmd := exec.Command("scp", "-i", "~/.ssh/lkey", "-o", "StrictHostKeyChecking=no",
+				fmt.Sprintf("ec2-user@%s:%s", config.Host(s.Address), fn),
+				fmt.Sprintf("%s/%s-%s", dirLocal, s.Address, path.Base(fn)),
+			)
+			cmd.Stderr = os.Stderr
+			cmd.Stdout = os.Stdout
+			log.Printf("Running %v", cmd)
 			err := cmd.Run()
 			if err != nil {
 				log.Print(err)
