@@ -387,10 +387,16 @@ func runConfigGenerator(args ArgsCoordinator) {
 	}
 	wg.Wait()
 
+	// create a temp dir to store public server config files
+	tmpDir, err := os.MkdirTemp("", "xtrellis-")
+	if err != nil {
+		log.Fatalf("Could not create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
 	// retrieve public server config from each host
-	// TODO: clean /tmp
 	fn := getWorkingDirectory() + "/" + args.ServerPublicFile
-	if !coordinator.TransferFileFromAllServers(remoteServers, fn, "/tmp") {
+	if !coordinator.TransferFileFromAllServers(remoteServers, fn, tmpDir) {
 		log.Fatalf("Could not transfer file %s from all servers", fn)
 	}
 
@@ -399,7 +405,7 @@ func runConfigGenerator(args ArgsCoordinator) {
 	ids := make([]int64, 0)
 	for id, host := range hosts {
 		ids = append(ids, int64(id))
-		s, err := config.UnmarshalServersFromFile("/tmp/" + host + "-" + args.ServerPublicFile)
+		s, err := config.UnmarshalServersFromFile(tmpDir + "/" + host + "-" + args.ServerPublicFile)
 		if err != nil {
 			log.Fatalf("Could not read servers file %v", err)
 		}
@@ -409,7 +415,7 @@ func runConfigGenerator(args ArgsCoordinator) {
 		}
 	}
 
-	err := config.MarshalServersToFile(args.ServerFile, servers)
+	err = config.MarshalServersToFile(args.ServerFile, servers)
 	if err != nil {
 		log.Fatalf("Could not write servers file %s", args.ServerFile)
 	}
