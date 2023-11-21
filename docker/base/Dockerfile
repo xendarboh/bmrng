@@ -59,8 +59,13 @@ RUN go install github.com/bufbuild/buf/cmd/buf@${VERSION_BUF} \
 WORKDIR /src
 
 
-# pre-copy/cache go.mod for pre-downloading dependencies
+# pre-copy and cache downloaded go modules and other dependencies
 # and only redownloading them in subsequent builds if they change
+
+# build and install mcl
+COPY go/trellis/crypto/pairing/mcl/scripts ./go/trellis/crypto/pairing/mcl/scripts
+RUN ./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh \
+  && ldconfig
 
 COPY api/go.* ./api/
 COPY go/0kn/go.* ./go/0kn/
@@ -70,11 +75,6 @@ RUN cd api && go mod download && go mod verify
 RUN cd go/0kn && go mod download && go mod verify
 RUN cd go/trellis && go mod download && go mod verify
 
-
-# build and install mcl; use docker build cache
-COPY go/trellis/crypto/pairing/mcl/scripts ./go/trellis/crypto/pairing/mcl/scripts
-RUN ./go/trellis/crypto/pairing/mcl/scripts/install-deps.sh \
-  && ldconfig
 
 COPY . .
 

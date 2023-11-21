@@ -19,7 +19,7 @@ cat ${dir}/lkey.pub > ${dir}/authorized_keys
 chown -R ${SSHUSER}:${SSHUSER} ${dir}
 
 # wait for servers to start, then run a coordinated mix-net experiment
-sleep 3s && su -c '/src/docker/remote-network-simulation/coordinator-run.sh' ${SSHUSER}
+sleep 3s && su -c '/src/docker/remote-network-simulation/coordinator-run.sh' ${SSHUSER} &
 
 # start ssh daemon, useful for local dev
 /usr/sbin/sshd -D

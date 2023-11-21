@@ -8,6 +8,10 @@ type ArgsCommon struct {
 	KeyFile     string `default:"keys.json"`
 	MessageFile string `default:"messages.json"`
 	OutFile     string `default:"res.json"`
+
+	// local server config
+	ServerPrivateFile string `default:"servers-private.json"`
+	ServerPublicFile  string `default:"servers-public.json"`
 }
 
 type ArgsCoordinator struct {
@@ -47,7 +51,7 @@ type ArgsCoordinatorCommon struct {
 }
 
 type ArgsCoordinatorConfig struct {
-	HostsFile string `default:"hosts.list" help:"file with list of remote hosts"`
+	HostsFile string `default:"hosts.list" help:"file with list of remote hosts; format <hostname or ip>:<port>"`
 }
 
 type ArgsCoordinatorExperiment struct {
@@ -60,6 +64,11 @@ type ArgsServer struct {
 	ArgsCommon
 
 	Addr string `default:"localhost:8000"`
+
+	Config *ArgsServerConfig `arg:"subcommand:config" help:"generate server configuration"`
+}
+
+type ArgsServerConfig struct {
 }
 
 type ArgsClient struct {

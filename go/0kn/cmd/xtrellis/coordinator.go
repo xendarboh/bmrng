@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -73,7 +75,12 @@ func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 	}
 
 	if args.BinSize == 0 {
-		args.BinSize = config.BinSize2(args.NumLayers, args.NumServers, args.NumUsers, -args.Overflow)
+		args.BinSize = config.BinSize2(
+			args.NumLayers,
+			args.NumServers,
+			args.NumUsers,
+			-args.Overflow,
+		)
 	}
 
 	if args.LimitSize == 0 {
@@ -98,7 +105,21 @@ func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {
 		net = coordinator.NewInProcessNetwork(args.NumServers, args.NumGroups, args.GroupSize)
 
 	case NETWORK_TYPE_LOCAL: // run in separate process on the same machine
-		serverConfigs, groupConfigs, clientConfigs := coordinator.NewLocalConfig(args.NumServers, args.NumGroups, args.GroupSize, args.NumClientServers, false)
+		serverConfigs, groupConfigs, clientConfigs := coordinator.NewLocalConfig(
+			args.NumServers,
+			args.NumGroups,
+			args.GroupSize,
+			args.NumClientServers,
+			false,
+		)
+
+		// copy public server config to private servers file
+		// TODO: improve public/private config generation
+		serverPrivateFile := args.ServerPrivateFile
+		if err := config.MarshalServersToFile(serverPrivateFile, serverConfigs); err != nil {
+			log.Fatalf("Could not write private servers file %s: %v", serverPrivateFile, err)
+		}
+
 		if args.LoadMessages {
 			oldServers, err := config.UnmarshalServersFromFile(args.ServerFile)
 			if err != nil {
@@ -219,7 +240,12 @@ func runMixnet(args ArgsCoordinator) {
 	if args.MessageSize <= int(gateway.GetMaxProtocolSize()) {
 		log.Fatal("Error: MessageSize too small for Gateway packet protocol")
 	}
-	gateway.Init(int64(args.MessageSize), args.GatewayEnable, args.GatewayAddrIn, args.GatewayAddrOut)
+	gateway.Init(
+		int64(args.MessageSize),
+		args.GatewayEnable,
+		args.GatewayAddrIn,
+		args.GatewayAddrOut,
+	)
 
 	// setup network
 	net := setupNetwork(args)
@@ -335,47 +361,69 @@ func runMixnet(args ArgsCoordinator) {
 	}
 }
 
+// Note: This is a temporary solution within the evolving context of trellis
+// simulator for servers to generate their own config files and only share
+// the public aspects
+// TODO: client servers
 func runConfigGenerator(args ArgsCoordinator) {
 	hosts := readHostsfile(args.Config.HostsFile)
 
+	// hosts --> servers (to match trellis function expectations)
+	remoteServers := make(map[int64]*config.Server)
+	for i, host := range hosts {
+		remoteServers[int64(i)] = &config.Server{
+			Address: host,
+		}
+	}
+
+	// run remote commands on each host to create their own private server config
+	var wg sync.WaitGroup
+	for _, s := range remoteServers {
+		wg.Add(1)
+		go func(s *config.Server) {
+			defer wg.Done()
+			cmd := fmt.Sprintf("xtrellis server config --addr %s", s.Address)
+			if !coordinator.RunRemoteCommandOnEach(map[int64]*config.Server{int64(0): s}, cmd) {
+				log.Fatalf("Could not run command `%s` on host %s", cmd, s.Address)
+			}
+		}(s)
+	}
+	wg.Wait()
+
+	// create a temp dir to store public server config files
+	tmpDir, err := os.MkdirTemp("", "xtrellis-")
+	if err != nil {
+		log.Fatalf("Could not create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// retrieve public server config from each host
+	fn := getWorkingDirectory() + "/" + args.ServerPublicFile
+	if !coordinator.TransferFileFromAllServers(remoteServers, fn, tmpDir) {
+		log.Fatalf("Could not transfer file %s from all servers", fn)
+	}
+
+	// merge public server config from each host
 	servers := make(map[int64]*config.Server)
-	clients := make(map[int64]*config.Server)
-
 	ids := make([]int64, 0)
-	for id, addr := range hosts {
+	for id, host := range hosts {
 		ids = append(ids, int64(id))
-		if len(hosts) >= args.NumClientServers+args.NumServers {
-			if id < args.NumServers {
-				servers[int64(id)] = config.CreateServerWithExisting(addr+":8000", int64(id), servers)
-			} else if id < args.NumClientServers+args.NumServers {
-				clients[int64(id-args.NumServers)] = config.CreateServerWithExisting(addr+":8900", int64(id-args.NumServers), servers)
-			}
-		} else {
-			if id < args.NumServers {
-				servers[int64(id)] = config.CreateServerWithExisting(addr+":8000", int64(id), servers)
-			}
-			// create on same servers
-			if id < args.NumClientServers {
-				clients[int64(id)] = config.CreateServerWithExisting(addr+":8900", int64(id), servers)
-			}
-		}
-	}
-	ids = ids[:args.NumServers]
-
-	groups := config.CreateSeparateGroupsWithSize(args.NumGroups, args.GroupSize, ids)
-
-	if args.NumClientServers > 0 {
-		err := config.MarshalServersToFile(args.ClientFile, clients)
+		s, err := config.UnmarshalServersFromFile(tmpDir + "/" + host + "-" + args.ServerPublicFile)
 		if err != nil {
-			log.Fatalf("Could not write clients file %s", args.ClientFile)
+			log.Fatalf("Could not read servers file %v", err)
+		}
+		for _, s2 := range s {
+			s2.Id = int64(id)
+			servers[int64(id)] = s2
 		}
 	}
 
-	err := config.MarshalServersToFile(args.ServerFile, servers)
+	err = config.MarshalServersToFile(args.ServerFile, servers)
 	if err != nil {
 		log.Fatalf("Could not write servers file %s", args.ServerFile)
 	}
 
+	groups := config.CreateSeparateGroupsWithSize(args.NumGroups, args.GroupSize, ids)
 	err = config.MarshalGroupsToFile(args.GroupFile, groups)
 	if err != nil {
 		log.Fatalf("Could not write group file %s", args.GroupFile)
