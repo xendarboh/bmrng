@@ -30,6 +30,10 @@ const (
 )
 
 func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
+	logger := utils.GetLogger()
+	sugar := logger.Sugar()
+	defer sugar.Sync()
+	sugar.Info("Started Launch Coordinator")
 	processArgs(&args, argParser)
 
 	switch {
@@ -45,6 +49,10 @@ func LaunchCoordinator(args ArgsCoordinator, argParser *arg.Parser) {
 }
 
 func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
+	logger := utils.GetLogger()
+	sugar := logger.Sugar()
+	defer sugar.Sync()
+
 	if args.GroupSize == 0 {
 		if args.F != 0 {
 			if args.NumGroups != 0 {
@@ -53,7 +61,7 @@ func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 				args.GroupSize, args.NumGroups = config.CalcFewGroups2(args.F, args.NumServers)
 			}
 		} else {
-			log.Printf("Set groupsize or f")
+			sugar.Infof("Set groupsize or f")
 			argParser.WriteHelp(os.Stdout)
 			return
 		}
@@ -68,7 +76,7 @@ func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 		if args.F != 0 {
 			args.NumLayers = config.NumLayers(args.NumUsers, args.F)
 		} else {
-			log.Printf("Set numlayers or f")
+			sugar.Infof("Set numlayers or f")
 			argParser.WriteHelp(os.Stdout)
 			return
 		}
@@ -94,7 +102,10 @@ func processArgs(args *ArgsCoordinator, argParser *arg.Parser) {
 		args.NumClientServers = 0
 	}
 
-	log.Printf("%+v", args)
+	sugar.Infow(
+		"args passed to xtrellis",
+		"args: %v", args,
+	)
 }
 
 func setupNetwork(args ArgsCoordinator) *coordinator.CoordinatorNetwork {

@@ -4,7 +4,7 @@ go 1.21.3
 
 require (
 	filippo.io/edwards25519 v1.0.0
-	github.com/31333337/bmrng/go/0kn v0.0.0-20231013211547-989695299184
+	github.com/31333337/bmrng/go/0kn v0.0.0-20231121060619-e814dfefd15f
 	github.com/alexflint/go-arg v1.4.3
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20230904125328-1f23a7beb09a

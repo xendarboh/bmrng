@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 
 	arg "github.com/alexflint/go-arg"
-
-	"github.com/31333337/bmrng/go/0kn/pkg/utils"
 )
 
 // set the working directory from env var and change to the directory
@@ -50,9 +48,6 @@ func getWorkingDirectory() string {
 func main() {
 	var args Args
 	argParser := arg.MustParse(&args)
-
-	utils.SetDebugLogEnabled(args.Debug)
-	utils.SetDebugLogCallerEnabled(args.DebugCaller)
 
 	setWorkingDirectory()
 

@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/31333337/bmrng/go/0kn/internal/conf"
+	"github.com/31333337/bmrng/go/0kn/pkg/utils"
 	"github.com/31333337/bmrng/go/trellis/config"
 	"github.com/31333337/bmrng/go/trellis/errors"
 	"github.com/31333337/bmrng/go/trellis/network"
@@ -21,36 +22,42 @@ func LaunchServer(args ArgsServer) {
 
 // from trellis/cmd/server/
 func runServer(args ArgsServer) {
+
 	serversFile := args.ServerFile
 	groupsFile := args.GroupFile
 	addr := args.Addr
 	serverPrivateFile := args.ServerPrivateFile
 	errors.Addr = addr
 
-	log.Printf("Launching server with address %s", addr)
+	logger := utils.GetLogger()
+	sugar := logger.Sugar()
+	defer sugar.Sync()
+	sugar.Infow(
+		"Launching server",
+		"address %s", addr,
+	)
 
-	// load public server config for mix-net round
 	servers, err := config.UnmarshalServersFromFile(serversFile)
 	if err != nil {
-		log.Fatalf("Could not read servers file %s: %v", serversFile, err)
+		sugar.Fatalf("Could not read servers file %s", serversFile)
 	}
 
 	// find server id by address in public config
 	id, _ := network.FindConfig(addr, servers)
 	if id < 0 {
-		log.Fatalf("Could not find %s in servers file", addr)
+		sugar.Fatalf("Could not find %s in servers file", addr)
 	}
 
 	// load private server config
 	serversPrivate, err := config.UnmarshalServersFromFile(serverPrivateFile)
 	if err != nil {
-		log.Fatalf("Could not read private servers file %s: %v", serverPrivateFile, err)
+		sugar.Fatalf("Could not read private servers file %s: %v", serverPrivateFile, err)
 	}
 
 	// find server config by address in private config
 	_, cfg := network.FindConfig(addr, serversPrivate)
 	if cfg == nil {
-		log.Fatalf("Could not find %s in private servers file", addr)
+		sugar.Fatalf("Could not find %s in private servers file", addr)
 	}
 
 	// replace public config with private (complete) config
@@ -59,7 +66,7 @@ func runServer(args ArgsServer) {
 
 	groups, err := config.UnmarshalGroupsFromFile(groupsFile)
 	if err != nil {
-		log.Fatalf("Could not read group file %s: %v", groupsFile, err)
+		sugar.Fatalf("Could not read group file %s: %v", groupsFile, err)
 	}
 
 	// will start in blocked state

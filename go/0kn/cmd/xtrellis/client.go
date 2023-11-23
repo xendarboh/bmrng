@@ -1,8 +1,7 @@
 package main
 
 import (
-	"log"
-
+	"github.com/31333337/bmrng/go/0kn/pkg/utils"
 	"github.com/31333337/bmrng/go/trellis/client"
 	"github.com/31333337/bmrng/go/trellis/config"
 	"github.com/31333337/bmrng/go/trellis/errors"
@@ -17,21 +16,27 @@ func LaunchClient(args ArgsClient) {
 	addr := args.Addr
 	errors.Addr = addr
 
-	log.Printf("Launching client with address %s", addr)
+	logger := utils.GetLogger()
+	sugar := logger.Sugar()
+	defer sugar.Sync()
+	sugar.Infow(
+		"Launching client",
+		"address %s", addr,
+	)
 
 	servers, err := config.UnmarshalServersFromFile(serversFile)
 	if err != nil {
-		log.Fatalf("Could not read servers file %s", serversFile)
+		sugar.Fatalf("Could not read servers file %s", serversFile)
 	}
 
 	groups, err := config.UnmarshalGroupsFromFile(groupsFile)
 	if err != nil {
-		log.Fatalf("Could not read group file %s", groupsFile)
+		sugar.Fatalf("Could not read group file %s", groupsFile)
 	}
 
 	clients, err := config.UnmarshalServersFromFile(clientsFile)
 	if err != nil {
-		log.Fatalf("Could not read clients file %s", clientsFile)
+		sugar.Fatalf("Could not read clients file %s", clientsFile)
 	}
 
 	clientRunner := client.NewClientRunner(servers, groups)

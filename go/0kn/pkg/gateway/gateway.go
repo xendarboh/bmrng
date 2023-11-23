@@ -281,6 +281,9 @@ func GetMessageForClient(clientId int64) ([]byte, error) {
 // This replaces `coordinator.Check` testing for message ids.
 // Note: There are duplicates (why?), so sort unique.
 func CheckFinalMessages(messages [][]byte, numExpected int) bool {
+	logger := utils.GetLogger()
+	sugar := logger.Sugar()
+	defer sugar.Sync()
 
 	// get a packet identifier that is unique among all packets of a round
 	getPacketUID := func(h *gatewayv1.PacketHeader) uint64 {
@@ -322,25 +325,22 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 
 		switch p.Type {
 		case gatewayv1.PacketType_PACKET_TYPE_START:
-			utils.DebugLog("[Gateway] <<< [mix-net] 🟢 START stream [%d]", id)
+			sugar.Debugf("[Gateway] <<< [mix-net] 🟢 START stream [%d]", id)
 			streamOut[id] = NewMessageQueue()
 			streamOutStateMu.Lock()
 			streamOutState[id] = STREAM_OUT_START
 			streamOutStateMu.Unlock()
-			break
 
 		case gatewayv1.PacketType_PACKET_TYPE_DATA:
-			utils.DebugLog("[Gateway] <<< [mix-net] 🔶 DATA stream [%d][%d]", id, p.Sequence)
+			sugar.Debugf("[Gateway] <<< [mix-net] 🔶 DATA stream [%d][%d]", id, p.Sequence)
 			uid := getPacketUID(p)
 			streamOut[id].Enqueue(uniqueMessages[uid])
-			break
 
 		case gatewayv1.PacketType_PACKET_TYPE_END:
-			utils.DebugLog("[Gateway] <<< [mix-net] 🟥 END stream [%d]", id)
+			sugar.Debugf("[Gateway] <<< [mix-net] 🟥 END stream [%d]", id)
 			streamOutStateMu.Lock()
 			streamOutState[id] = STREAM_OUT_END
 			streamOutStateMu.Unlock()
-			break
 		}
 	}
 
@@ -396,10 +396,14 @@ func proxyStart(addrIn string) {
 func proxyHandleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	logger := utils.GetLogger()
+	sugar := logger.Sugar()
+	defer sugar.Sync()
+
 	streamId := getStreamId()
 	var packetCounter uint64 = 0
 
-	utils.DebugLog("[Gateway] >>> Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
+	sugar.Debugf("[Gateway] >>> Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
 
 	// Send a message through the mix-net
 	sendMessage := func(h *gatewayv1.PacketHeader, dataOrMessage []byte, packed bool) {
@@ -416,7 +420,7 @@ func proxyHandleConnection(conn net.Conn) {
 			}
 		}
 
-		utils.DebugLog("[Gateway] >>> [mix-net] Send stream [%d][%d]", h.StreamId, h.Sequence)
+		sugar.Debugf("[Gateway] >>> [mix-net] Send stream [%d][%d]", h.StreamId, h.Sequence)
 
 		// stage message for a mix-net client to pick it up
 		msgQueueIn.Enqueue(message)
@@ -442,7 +446,7 @@ func proxyHandleConnection(conn net.Conn) {
 		}
 
 		// prepare message buffer, determine space remaining for data
-		messageBuffer, space, err := prepareMessageBuffer(header)
+		messageBuffer, space, _ := prepareMessageBuffer(header)
 
 		// read at most "space" bytes from stream, record number ("n") of bytes actually read
 		data := make([]byte, space)
@@ -452,11 +456,11 @@ func proxyHandleConnection(conn net.Conn) {
 			// end transmission
 			if err == io.EOF {
 				header.Type = gatewayv1.PacketType_PACKET_TYPE_END
-				utils.DebugLog("[Gateway] >>> Finished receiving data stream id=%d", streamId)
+				sugar.Debugf("[Gateway] >>> Finished receiving data stream id=%d", streamId)
 
 			} else {
 				header.Type = gatewayv1.PacketType_PACKET_TYPE_ERROR
-				utils.DebugLog("[Gateway] >>> Error receiving data stream id=%d: %s", streamId, err.Error())
+				sugar.Debugf("[Gateway] >>> Error receiving data stream id=%d: %s", streamId, err.Error())
 			}
 
 			sendMessage(header, nil, false)
@@ -483,6 +487,9 @@ func getStreamId() uint64 {
 // An HTTP server to serve data output
 // conceptual placeholder to get mixed data out of the gateway in lieu of more protocol
 func httpServerStart(addrOut string) {
+	logger := utils.GetLogger()
+	sugar := logger.Sugar()
+	defer sugar.Sync()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var id uint64 = 0
 
@@ -516,11 +523,11 @@ func httpServerStart(addrOut string) {
 			}
 
 			// wait until there is a stream
-			utils.DebugLog("[Gateway] <<< Waiting for stream...")
+			sugar.Debugf("[Gateway] <<< Waiting for stream...")
 			time.Sleep(time.Duration(40) * time.Millisecond)
 		}
 
-		utils.DebugLog("[Gateway] <<< stream leaving gateway id=%d, number of streams=%d", id, len(streamOutState))
+		sugar.Debugf("[Gateway] <<< stream leaving gateway id=%d, number of streams=%d", id, len(streamOutState))
 
 		if id != 0 {
 			for {
@@ -535,7 +542,7 @@ func httpServerStart(addrOut string) {
 						break
 					} else if state == STREAM_OUT_START {
 						// if stream has not finished transmitting, wait for more data to exit the mix-net
-						utils.DebugLog("[Gateway] <<< Waiting for stream data to exit mix-net...")
+						sugar.Debugf("[Gateway] <<< Waiting for stream data to exit mix-net...")
 						time.Sleep(time.Duration(10) * time.Millisecond)
 						continue
 					}

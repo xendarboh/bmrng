@@ -2,43 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"log"
-	"regexp"
-	"runtime"
 )
-
-var debugLogEnabled = false
-var debugLogCallerEnabled = false
-
-func SetDebugLogEnabled(enabled bool) {
-	debugLogEnabled = enabled
-}
-
-func SetDebugLogCallerEnabled(enabled bool) {
-	debugLogCallerEnabled = enabled
-}
-
-func DebugLog(format string, args ...interface{}) {
-	if !debugLogEnabled {
-		return
-	}
-
-	caller := ""
-	if debugLogCallerEnabled {
-		// get the calling function's name, filename, and line number
-		pc, filename, line, _ := runtime.Caller(1)
-		funcname := runtime.FuncForPC(pc).Name()
-
-		// remove project root to shorten file path
-		re := regexp.MustCompile("(.*)/trellis/")
-		path := re.ReplaceAllString(filename, "")
-
-		caller = fmt.Sprintf("%s:%s:%d ", path, funcname, line)
-	}
-
-	s := fmt.Sprintf(format, args...)
-	log.Printf("🔷 %s%s", caller, s)
-}
 
 // Time statistics tracker
 type TimeStats struct {
