@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"net"
 	"net/http"
@@ -369,21 +368,23 @@ func sortPacketHeaders(headers []*gatewayv1.PacketHeader) {
 
 // Start gateway proxy to listen for incoming messages
 func proxyStart(addrIn string) {
+	defer logger.Sugar.Sync()
+
 	// Create a listener for incoming connections
 	listener, err := net.Listen("tcp", addrIn)
 	if err != nil {
-		log.Printf("[Gateway] >>> Error listening: %v\n", err)
+		logger.Sugar.Errorf("[Gateway] >>> Error listening: %v", err)
 		return
 	}
 	defer listener.Close()
 
-	log.Printf("[Gateway] >>> Listening on %s...\n", addrIn)
+	logger.Sugar.Infof("[Gateway] >>> Listening on %s...", addrIn)
 
 	// Accept incoming connections
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("[Gateway] >>> Error accepting connection: %v\n", err)
+			logger.Sugar.Errorf("[Gateway] >>> Error accepting connection: %v", err)
 			continue
 		}
 
@@ -398,7 +399,11 @@ func proxyHandleConnection(conn net.Conn) {
 	streamId := getStreamId()
 	var packetCounter uint64 = 0
 
-	logger.Sugar.Debugf("[Gateway] >>> Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
+	logger.Sugar.Debugf(
+		"[Gateway] >>> Accepted connection from %s id=%d",
+		conn.RemoteAddr(),
+		streamId,
+	)
 
 	// Send a message through the mix-net
 	sendMessage := func(h *gatewayv1.PacketHeader, dataOrMessage []byte, packed bool) {
@@ -411,7 +416,7 @@ func proxyHandleConnection(conn net.Conn) {
 
 			if err != nil {
 				// TODO: handle error less fatally
-				panic(fmt.Sprintf("[Gateway] >>> Error creating message from packet: %v\n", err))
+				logger.Sugar.Fatalf("[Gateway] >>> Error creating message from packet: %v", err)
 			}
 		}
 
@@ -567,9 +572,13 @@ func httpServerStart(addrOut string) {
 	})
 
 	// Start the HTTP server
-	log.Printf("[Gateway] <<< Listening on %s...\n", addrOut)
 	err := http.ListenAndServe(addrOut, nil)
 	if err != nil {
-		fmt.Println("[Gateway] <<< Error:", err)
+		logger.Sugar.Fatalw("[Gateway] <<< Failed to start proxy out",
+			"address", addrOut,
+			"error", err,
+		)
 	}
+
+	logger.Sugar.Infof("[Gateway] <<< Listening on %s...", addrOut)
 }

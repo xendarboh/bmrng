@@ -25,7 +25,7 @@ func RunServer(handler messages.MessageHandlersServer, coordHandler coord.Coordi
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs
 	server.Stop()
-	logger.Sugar.Infof("Server stopped",
+	logger.Sugar.Infow("Server stopped",
 		"address", addr,
 	)
 }
@@ -36,8 +36,6 @@ func StartServer(handler messages.MessageHandlersServer, coordHandler coord.Coor
 	id, myCfg := FindConfig(addr, servercfgs)
 	if id < 0 {
 		logger.Sugar.Fatalf("Could not find %s", addr)
-		logger.Sugar.Sync()
-		panic("Could not find " + addr)
 	}
 	cert, err := tls.X509KeyPair(myCfg.Identity, myCfg.PrivateIdentity)
 	if err != nil {
@@ -45,8 +43,6 @@ func StartServer(handler messages.MessageHandlersServer, coordHandler coord.Coor
 			"error generating X509 Key Pair",
 			"error", err,
 		)
-		logger.Sugar.Sync()
-		panic(err)
 	}
 	cred := credentials.NewServerTLSFromCert(&cert)
 	grpcServer := grpc.NewServer(grpc.Creds(cred),
@@ -60,24 +56,24 @@ func StartServer(handler messages.MessageHandlersServer, coordHandler coord.Coor
 	lis, err := net.Listen("tcp", config.Port(addr))
 	if err != nil {
 		logger.Sugar.Fatalw("Server could not listen over tcp",
-			"addr", addr,
-			"err", err,
+			"address", addr,
+			"error", err,
 		)
-		logger.Sugar.Sync()
-		panic(err)
 	}
 
 	go func() {
 		err := grpcServer.Serve(lis)
 		if err != nil && err != grpc.ErrServerStopped {
-			logger.Sugar.Fatalf("grpcServer err: %v", err)
-			logger.Sugar.Sync()
-			panic(err)
+			logger.Sugar.Fatalw("grpcServer error",
+				"error", err,
+			)
 		}
 	}()
+
 	logger.Sugar.Infow("Server started",
 		"address", addr,
 	)
+
 	return grpcServer
 }
 

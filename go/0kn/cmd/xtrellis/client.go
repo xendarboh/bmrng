@@ -20,22 +20,31 @@ func LaunchClient(args ArgsClient) {
 
 	logger.Sugar.Infow(
 		"Launching client",
-		"address %s", addr,
+		"address", addr,
 	)
 
 	servers, err := config.UnmarshalServersFromFile(serversFile)
 	if err != nil {
-		logger.Sugar.Fatalf("Could not read servers file %s", serversFile)
+		logger.Sugar.Fatalw("Could not read servers file",
+			"file", serversFile,
+			"error", err,
+		)
 	}
 
 	groups, err := config.UnmarshalGroupsFromFile(groupsFile)
 	if err != nil {
-		logger.Sugar.Fatalf("Could not read group file %s", groupsFile)
+		logger.Sugar.Fatalw("Could not read group file",
+			"file", groupsFile,
+			"error", err,
+		)
 	}
 
 	clients, err := config.UnmarshalServersFromFile(clientsFile)
 	if err != nil {
-		logger.Sugar.Fatalf("Could not read clients file %s", clientsFile)
+		logger.Sugar.Fatalw("Could not read clients file",
+			"file", clientsFile,
+			"error", err,
+		)
 	}
 
 	clientRunner := client.NewClientRunner(servers, groups)

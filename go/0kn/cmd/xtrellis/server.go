@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/31333337/bmrng/go/0kn/internal/conf"
 	"github.com/31333337/bmrng/go/0kn/pkg/logger"
 	"github.com/31333337/bmrng/go/trellis/config"
@@ -32,7 +30,7 @@ func runServer(args ArgsServer) {
 
 	logger.Sugar.Infow(
 		"Launching server",
-		"address %s", addr,
+		"address", addr,
 	)
 
 	servers, err := config.UnmarshalServersFromFile(serversFile)
@@ -82,13 +80,19 @@ func runServer(args ArgsServer) {
 }
 
 func runServerConfigGenerator(args ArgsServer) {
+	defer logger.Sugar.Sync()
+
 	addr := args.Addr
 
 	err := conf.LocalServerConfigSet(addr, args.ServerPrivateFile, args.ServerPublicFile)
 	if err != nil {
-		log.Printf("Could not create server config for address %s", addr)
-		log.Fatalf("%v", err)
+		logger.Sugar.Fatalw("Could not create server config",
+			"file-private", args.ServerPrivateFile,
+			"file-public", args.ServerPublicFile,
+			"address", addr,
+			"error", err,
+		)
 	}
 
-	log.Printf("Created server config for address %s", addr)
+	logger.Sugar.Infof("Created server config for address %s", addr)
 }
