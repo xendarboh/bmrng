@@ -6,7 +6,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func GetLogger() *zap.Logger {
+var (
+	Logger *zap.Logger
+	Sugar  *zap.SugaredLogger
+)
+
+func init() {
 	// TODO: get this from a config file
 	rawJSON := []byte(`{
 	  "level": "debug",
@@ -25,7 +30,7 @@ func GetLogger() *zap.Logger {
 	if err := json.Unmarshal(rawJSON, &cfg); err != nil {
 		panic(err)
 	}
-	logger := zap.Must(cfg.Build())
 
-	return logger
+	Logger := zap.Must(cfg.Build())
+	Sugar = Logger.Sugar()
 }

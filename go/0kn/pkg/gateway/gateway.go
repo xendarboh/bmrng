@@ -17,7 +17,7 @@ import (
 	"time"
 
 	gatewayv1 "github.com/31333337/bmrng/api/gen/proto/go/gateway/v1"
-	"github.com/31333337/bmrng/go/0kn/pkg/utils"
+	"github.com/31333337/bmrng/go/0kn/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -281,9 +281,7 @@ func GetMessageForClient(clientId int64) ([]byte, error) {
 // This replaces `coordinator.Check` testing for message ids.
 // Note: There are duplicates (why?), so sort unique.
 func CheckFinalMessages(messages [][]byte, numExpected int) bool {
-	logger := utils.GetLogger()
-	sugar := logger.Sugar()
-	defer sugar.Sync()
+	defer logger.Sugar.Sync()
 
 	// get a packet identifier that is unique among all packets of a round
 	getPacketUID := func(h *gatewayv1.PacketHeader) uint64 {
@@ -325,19 +323,19 @@ func CheckFinalMessages(messages [][]byte, numExpected int) bool {
 
 		switch p.Type {
 		case gatewayv1.PacketType_PACKET_TYPE_START:
-			sugar.Debugf("[Gateway] <<< [mix-net] 🟢 START stream [%d]", id)
+			logger.Sugar.Debugf("[Gateway] <<< [mix-net] 🟢 START stream [%d]", id)
 			streamOut[id] = NewMessageQueue()
 			streamOutStateMu.Lock()
 			streamOutState[id] = STREAM_OUT_START
 			streamOutStateMu.Unlock()
 
 		case gatewayv1.PacketType_PACKET_TYPE_DATA:
-			sugar.Debugf("[Gateway] <<< [mix-net] 🔶 DATA stream [%d][%d]", id, p.Sequence)
+			logger.Sugar.Debugf("[Gateway] <<< [mix-net] 🔶 DATA stream [%d][%d]", id, p.Sequence)
 			uid := getPacketUID(p)
 			streamOut[id].Enqueue(uniqueMessages[uid])
 
 		case gatewayv1.PacketType_PACKET_TYPE_END:
-			sugar.Debugf("[Gateway] <<< [mix-net] 🟥 END stream [%d]", id)
+			logger.Sugar.Debugf("[Gateway] <<< [mix-net] 🟥 END stream [%d]", id)
 			streamOutStateMu.Lock()
 			streamOutState[id] = STREAM_OUT_END
 			streamOutStateMu.Unlock()
@@ -395,15 +393,12 @@ func proxyStart(addrIn string) {
 
 func proxyHandleConnection(conn net.Conn) {
 	defer conn.Close()
-
-	logger := utils.GetLogger()
-	sugar := logger.Sugar()
-	defer sugar.Sync()
+	defer logger.Sugar.Sync()
 
 	streamId := getStreamId()
 	var packetCounter uint64 = 0
 
-	sugar.Debugf("[Gateway] >>> Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
+	logger.Sugar.Debugf("[Gateway] >>> Accepted connection from %s id=%d", conn.RemoteAddr(), streamId)
 
 	// Send a message through the mix-net
 	sendMessage := func(h *gatewayv1.PacketHeader, dataOrMessage []byte, packed bool) {
@@ -420,7 +415,7 @@ func proxyHandleConnection(conn net.Conn) {
 			}
 		}
 
-		sugar.Debugf("[Gateway] >>> [mix-net] Send stream [%d][%d]", h.StreamId, h.Sequence)
+		logger.Sugar.Debugf("[Gateway] >>> [mix-net] Send stream [%d][%d]", h.StreamId, h.Sequence)
 
 		// stage message for a mix-net client to pick it up
 		msgQueueIn.Enqueue(message)
@@ -456,11 +451,11 @@ func proxyHandleConnection(conn net.Conn) {
 			// end transmission
 			if err == io.EOF {
 				header.Type = gatewayv1.PacketType_PACKET_TYPE_END
-				sugar.Debugf("[Gateway] >>> Finished receiving data stream id=%d", streamId)
+				logger.Sugar.Debugf("[Gateway] >>> Finished receiving data stream id=%d", streamId)
 
 			} else {
 				header.Type = gatewayv1.PacketType_PACKET_TYPE_ERROR
-				sugar.Debugf("[Gateway] >>> Error receiving data stream id=%d: %s", streamId, err.Error())
+				logger.Sugar.Debugf("[Gateway] >>> Error receiving data stream id=%d: %s", streamId, err.Error())
 			}
 
 			sendMessage(header, nil, false)
@@ -487,9 +482,8 @@ func getStreamId() uint64 {
 // An HTTP server to serve data output
 // conceptual placeholder to get mixed data out of the gateway in lieu of more protocol
 func httpServerStart(addrOut string) {
-	logger := utils.GetLogger()
-	sugar := logger.Sugar()
-	defer sugar.Sync()
+	defer logger.Sugar.Sync()
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var id uint64 = 0
 
@@ -523,11 +517,15 @@ func httpServerStart(addrOut string) {
 			}
 
 			// wait until there is a stream
-			sugar.Debugf("[Gateway] <<< Waiting for stream...")
+			logger.Sugar.Debugf("[Gateway] <<< Waiting for stream...")
 			time.Sleep(time.Duration(40) * time.Millisecond)
 		}
 
-		sugar.Debugf("[Gateway] <<< stream leaving gateway id=%d, number of streams=%d", id, len(streamOutState))
+		logger.Sugar.Debugf(
+			"[Gateway] <<< stream leaving gateway id=%d, number of streams=%d",
+			id,
+			len(streamOutState),
+		)
 
 		if id != 0 {
 			for {
@@ -542,7 +540,7 @@ func httpServerStart(addrOut string) {
 						break
 					} else if state == STREAM_OUT_START {
 						// if stream has not finished transmitting, wait for more data to exit the mix-net
-						sugar.Debugf("[Gateway] <<< Waiting for stream data to exit mix-net...")
+						logger.Sugar.Debugf("[Gateway] <<< Waiting for stream data to exit mix-net...")
 						time.Sleep(time.Duration(10) * time.Millisecond)
 						continue
 					}
